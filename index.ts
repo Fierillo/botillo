@@ -11,9 +11,11 @@ config();
 // Create a new Discord client
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 // Set interval for Bitcoin price tracking
-const TIME_INTERVAL = 60000
+const TIME_INTERVAL = Number(process.env.BOT_TIME_INTERVAL);
 // Set channel ID
-const CHANNEL_ID = '1288321546691153975'
+const CHANNEL_ID = process.env.DISCORD_CHANNEL_ID!;
+// Bot token
+client.login(process.env.DISCORD_TOKEN);
 
 // Define initial variables
 let maxPrice: number = 0;
@@ -24,8 +26,8 @@ let lastReportedMin: number | null = null;
 // Define function that fetches the Bitcoin price using CriptoYa API
 const getBitcoinPrice = async (): Promise<number | undefined> => {
   try {
-    const response = await axios.get('https://criptoya.com/api/btc/usd'); // API para obtener el precio
-    return response.data['bitsoalpha'].ask; // Cambia esto a la API que prefieras
+    const response = await axios.get('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT'); 
+    return parseInt(response.data.lastPrice);
   } catch (error) {
     console.error('Error al obtener el precio de Bitcoin:', error);
   }
@@ -34,10 +36,10 @@ const getBitcoinPrice = async (): Promise<number | undefined> => {
 // Define function that fetches the max and min price of the day
 const getMaxMinPriceOfDay = async (): Promise<{ max: number, min: number }> => {
   try {
-    const response = await axios.get('https://criptoya.com/api/btc/usd');
+    const response = await axios.get('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT');
     return {
-      max: response.data['bitsoalpha'].high, 
-      min: response.data['bitsoalpha'].low,   
+      max: parseInt(response.data.highPrice),
+      min: parseInt(response.data.lowPrice),
     };
   } catch (error) {
     console.error('Error al obtener los máximos/mínimos diarios:', error);
@@ -58,24 +60,23 @@ const reportNewPrice = async (channel: TextChannel, price: number, type: 'max' |
 
 // Define function that tracks the Bitcoin price and stores the max and min only if values surpass old values
 const trackBitcoinPrice = async (channel: TextChannel) => {
+  const { max, min } = await getMaxMinPriceOfDay();
+  maxPrice = max;
+  minPrice = min;
+
   setInterval(async () => {
     const price = await getBitcoinPrice();
 
     if (price) {
       // Report if price is higher than max
-      if (price > maxPrice) {
+      if (price > maxPrice && price > (lastReportedMax || 0)) {
         maxPrice = price;
-        if (price > (lastReportedMax || 0)) {
-          await reportNewPrice(channel, price, 'max');
-        }
+        await reportNewPrice(channel, price, 'max');
       }
-
       // Report if price is lower than min
-      if (price < minPrice) {
+      if (price < minPrice && price < (lastReportedMin || Infinity)) {
         minPrice = price;
-        if (price < (lastReportedMin || Infinity)) {
-          await reportNewPrice(channel, price, 'min');
-        }
+        await reportNewPrice(channel, price, 'min');
       }
     }
   }, TIME_INTERVAL);
@@ -84,8 +85,9 @@ const trackBitcoinPrice = async (channel: TextChannel) => {
 // Function to reset daily highs and lows
 const resetDailyHighsAndLows = () => {
   schedule.scheduleJob('0 0 * * *', async () => { // Se ejecuta a medianoche
-    maxPrice = 0;
-    minPrice = Infinity;
+    const { max, min } = await getMaxMinPriceOfDay();
+    maxPrice = max;
+    minPrice = min;
     lastReportedMax = null;
     lastReportedMin = null;
     console.log('Reiniciando máximos y mínimos diarios.');
@@ -99,8 +101,9 @@ client.once('ready', async () => {
   const channel = client.channels.cache.get(CHANNEL_ID) as TextChannel;
 
   if (channel) {
+    const { max, min } = await getMaxMinPriceOfDay();
     // Send test message
-    channel.send(`¡Hola mundillo!`);
+    channel.send(`¡Hola mundillo!, el maximo diario de ฿ es: $${max} y el minimo: $${min}`);
     // Initialize the Bitcoin price tracking function
     trackBitcoinPrice(channel); 
     // Initialize the daily high and low reset function
@@ -110,5 +113,4 @@ client.once('ready', async () => {
   }
 });
 
-// Bot token
-client.login(process.env.DISCORD_TOKEN);
+
