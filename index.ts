@@ -58,11 +58,6 @@ const reportNewPrice = async (channel: TextChannel, price: number, type: 'max' |
 
 // Define function that tracks the Bitcoin price and stores the max and min only if values surpass old values
 const trackBitcoinPrice = async (channel: TextChannel) => {
-  // Obtener el máximo/mínimo del día cuando se inicia el bot
-  const { max, min } = await getMaxMinPriceOfDay();
-  maxPrice = max;
-  minPrice = min;
-
   setInterval(async () => {
     const price = await getBitcoinPrice();
 
@@ -89,9 +84,8 @@ const trackBitcoinPrice = async (channel: TextChannel) => {
 // Function to reset daily highs and lows
 const resetDailyHighsAndLows = () => {
   schedule.scheduleJob('0 0 * * *', async () => { // Se ejecuta a medianoche
-    const { max, min } = await getMaxMinPriceOfDay();
-    maxPrice = max;
-    minPrice = min;
+    maxPrice = 0;
+    minPrice = Infinity;
     lastReportedMax = null;
     lastReportedMin = null;
     console.log('Reiniciando máximos y mínimos diarios.');
@@ -99,15 +93,18 @@ const resetDailyHighsAndLows = () => {
 };
 
 // Define initial event listeners, sets channel ID and schedules High and Low reset
-client.once('ready', () => {
+client.once('ready', async () => {
   console.log(`Conectado como ${client.user?.tag}`);
 
   const channel = client.channels.cache.get(CHANNEL_ID) as TextChannel;
 
   if (channel) {
-    channel.send('¡El bot de Bitcoin está en línea!');
-    trackBitcoinPrice(channel); // Iniciar el rastreo del precio de Bitcoin
-    resetDailyHighsAndLows(); // Resetea máximos y mínimos diariamente
+    // Send test message
+    channel.send(`¡Hola mundillo!`);
+    // Initialize the Bitcoin price tracking function
+    trackBitcoinPrice(channel); 
+    // Initialize the daily high and low reset function
+    resetDailyHighsAndLows(); 
   } else {
     console.error('Error: No se encontró el canal especificado.');
   }
