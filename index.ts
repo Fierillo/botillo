@@ -18,8 +18,6 @@ const CHANNEL_ID = process.env.DISCORD_CHANNEL_ID!;
 client.login(process.env.DISCORD_TOKEN);
 
 // Define initial variables
-let maxPrice: number = 0;
-let minPrice: number = Infinity;
 let lastReportedMax: number | null = null;
 let lastReportedMin: number | null = null;
 
@@ -47,36 +45,21 @@ const getMaxMinPriceOfDay = async (): Promise<{ max: number, min: number }> => {
   }
 };
 
-// Define function that reports the new high or low price
-const reportNewPrice = async (channel: TextChannel, price: number, type: 'max' | 'min') => {
-  if (type === 'max') {
-    lastReportedMax = price;
-    await channel.send(`nuevo maximo diario de ฿: $${price}`);
-  } else {
-    lastReportedMin = price;
-    await channel.send(`🐻 nuevo minimo diario de ฿: $${price}`);
-  }
-};
-
-// Define function that tracks the Bitcoin price and stores the max and min only if values surpass old values
+// Define function that tracks the Bitcoin price at regular intervals and report the max and min only if values surpass old reported values
 const trackBitcoinPrice = async (channel: TextChannel) => {
-  const { max, min } = await getMaxMinPriceOfDay();
-  maxPrice = max;
-  minPrice = min;
-
   setInterval(async () => {
     const price = await getBitcoinPrice();
 
     if (price) {
-      // Report if price is higher than max
-      if (price > maxPrice && price > (lastReportedMax || 0)) {
-        maxPrice = price;
-        await reportNewPrice(channel, price, 'max');
+      // Report if price is higher than reported max
+      if (price > (lastReportedMax || 0)) {
+        lastReportedMax = price;
+        await channel.send(`nuevo maximo diario de ฿: $${price}`);
       }
-      // Report if price is lower than min
-      if (price < minPrice && price < (lastReportedMin || Infinity)) {
-        minPrice = price;
-        await reportNewPrice(channel, price, 'min');
+      // Report if price is lower than reported min
+      if (price < (lastReportedMin || Infinity)) {
+        lastReportedMin = price;
+        await channel.send(`🐻 nuevo minimo diario de ฿: $${price}`);
       }
     }
   }, TIME_INTERVAL);
@@ -85,12 +68,9 @@ const trackBitcoinPrice = async (channel: TextChannel) => {
 // Function to reset daily highs and lows
 const resetDailyHighsAndLows = () => {
   schedule.scheduleJob('0 0 * * *', async () => { // Se ejecuta a medianoche
-    const { max, min } = await getMaxMinPriceOfDay();
-    maxPrice = max;
-    minPrice = min;
-    lastReportedMax = null;
-    lastReportedMin = null;
-    console.log('Reiniciando máximos y mínimos diarios.');
+    lastReportedMax = 0;
+    lastReportedMin = Infinity;
+    console.log('Reiniciando máximos y mínimos diarios...');
   });
 };
 
@@ -101,9 +81,12 @@ client.once('ready', async () => {
   const channel = client.channels.cache.get(CHANNEL_ID) as TextChannel;
 
   if (channel) {
+    // Set initial High and Low values
     const { max, min } = await getMaxMinPriceOfDay();
+    lastReportedMax = max;
+    lastReportedMin = min;
     // Send test message
-    channel.send(`¡Hola mundillo!, el maximo diario de ฿ es: $${max} y el minimo: $${min}`);
+    channel.send(`¡Hola mundillo! , el maximo diario de ฿ es: $${max} y el minimo: $${min}`);
     // Initialize the Bitcoin price tracking function
     trackBitcoinPrice(channel); 
     // Initialize the daily high and low reset function
