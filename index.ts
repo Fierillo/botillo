@@ -7,14 +7,14 @@ import bodyParser from 'body-parser';
 const schedule = require('node-schedule');
 
 // Load environment variables from .env file
-config();
+config({ path: './.env' });
 
 // Discord Client
 const { Client, GatewayIntentBits } = require('discord.js');
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.MessageContent] });
 
 // Discord bot token
-client.login(process.env.DISCORD_TOKEN);
+client.login(process.env.DISCORD_TOKEN!);
 
 // Set interval for Bitcoin price tracking
 const TIME_INTERVAL = Number(process.env.BOT_TIME_INTERVAL);
@@ -110,6 +110,7 @@ client.on('messageCreate', async (message: Message) => {
   if (message.author.bot) return;
 
   currentDiscordChannel = message.channel as TextChannel;
+  console.log('Current Discord channel: ', currentDiscordChannel);
 
   const { max, min } = await getMaxMinPriceOfDay();
   lastReportedMax = max;
@@ -129,6 +130,8 @@ app.post(`/telegram/${TELEGRAM_BOT_TOKEN}`, async (req: { body: { message: any; 
   if (!message || message.from.is_bot) return res.sendStatus(200);
 
   currentTelegramChannel = message.chat.id;
+  console.log('Current Telegram channel: ', currentTelegramChannel);
+
   const { max, min } = await getMaxMinPriceOfDay();
   lastReportedMax = max;
   lastReportedMin = min;
