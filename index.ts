@@ -7,6 +7,7 @@ import bodyParser from 'body-parser';
 const schedule = require('node-schedule');
 import TelegramBot from 'node-telegram-bot-api';
 import { channel } from "diagnostics_channel";
+import { scheduleJob } from "node-schedule";
 
 // Load environment variables from .env file
 config();
@@ -99,15 +100,14 @@ const trackBitcoinPrice = async (channel: TextChannel | null) => {
 
 // Define function to reset daily highs and lows at midnight (UTC: 00:00)
 const resetDailyHighsAndLows = (channel: TextChannel | null) => {
-  schedule.scheduleJob('0 3 * * *', async () => { // Se ejecuta a medianoche
+  schedule.scheduleJob('0 0 * * *', () => {  // Restart Hi-Lo every midnight (UTC-3)
     lastReportedMax = 0;
     lastReportedMin = Infinity;
-    console.log('reiniciando máximos y mínimos diarios...');
     if (channel) {
-      await channel.send(`🔄 reiniciando máximos y mínimos diarios...`);
+      channel.send(`🔄 reiniciando máximos y mínimos diarios...`);
       for (const chatId in chatIds) {
         if (chatIds[chatId]) {
-          await bot.sendMessage(chatId, `🔄 reiniciando máximos y mínimos diarios...`);
+          bot.sendMessage(chatId, `🔄 reiniciando máximos y mínimos diarios...`);
         }
       }
     }
@@ -115,7 +115,7 @@ const resetDailyHighsAndLows = (channel: TextChannel | null) => {
 };
 
 // Initialize bot in Discord fetching automatically the servers where the bot is and sending welcome messages
-client.on(' ready', () => {
+client.on('ready', () => {
   console.log(`${client.user?.tag} started in Discord!`);
 
   // Fetch all the servers where the bot is
