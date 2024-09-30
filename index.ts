@@ -61,7 +61,7 @@ const trackBitcoinPrice = async () => {
     const { max, min } = await getMaxMinPriceOfDay();
     
     // If price is higher than reported max...
-    if (100*(max / lastReportedMax) > 101) {
+    if (max > lastReportedMax) {
       lastReportedMax = max;
       // Send to all Telegram chats...
       for (const chatId in telegramChats) {
@@ -76,7 +76,7 @@ const trackBitcoinPrice = async () => {
     }
 
     // If price is lower than reported min...
-    if (100*(min / lastReportedMin) < 99) {
+    if (min < lastReportedMin) {
       lastReportedMin = min;
       // Send to all Telegram chats...
       for (const chatId in telegramChats) {
@@ -180,7 +180,7 @@ bot.onText(/\/precio/, async (msg) => {
 // Send High and Low prices when user writes /hilo
 bot.onText(/\/hilo/, async (msg) => {
   const { max, min } = await getMaxMinPriceOfDay();
-  bot.sendMessage(msg.chat.id, `máximo diario de ฿: $${max}\n🐻 mínimo: $${min}`);
+  bot.sendMessage(msg.chat.id, `máximo diario de ฿: $${max}\n🐻 mínimo diario de ฿: $${min}`);
 });
 
 // Welcome message constant
