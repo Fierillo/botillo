@@ -187,17 +187,14 @@ bot.onText(/\/hilo/, async (msg) => {
   bot.sendMessage(msg.chat.id, `máximo diario de ฿: $${max}\n🐻 mínimo: $${min}`);
 });
 
-// Send welcome message when user writes /start
-bot.onText(/\/start/, (msg) => {
-  bot.sendMessage(msg.chat.id, `¡GM ${msg.chat.title || msg.chat.first_name}!\n\nSoy Botillo, mira las cosas que puedo hacer por ti:\n\n- Reportar automaticamente el maximo o minimo mas reciente de Bitcoin\n/precio - Muestra el precio actual de Bitcoin\n/hilo - Muestra el máximo y mínimo del dia\n/start - Muestra este mensaje\n\nPuedes mirar mi codigo en GitHub: https://github.com/Fierillo/botillo\n\n¡Gracias por usarme!`, {disable_web_page_preview: true});
-});
+// Welcome message constant
+const welcome = (id: number, name: string | undefined) => bot.sendMessage(id, `¡GM ${name}!\n\nSoy Botillo, mira las cosas que puedo hacer por ti:\n\n- Reportar automaticamente el maximo o minimo mas reciente de Bitcoin\n/precio - Muestro el precio actual de Bitcoin\n/hilo - Muestro el máximo y mínimo en lo que va del dia\n/start - Muestro este mensaje\n\nPuedes mirar mi codigo en GitHub: https://github.com/Fierillo/botillo\n\n¡Gracias por usarme!`, {disable_web_page_preview: true});
 
-// Send welcome message when bot joins new group
+// Sends welcome message when user writes /start
+bot.onText(/\/start/, (msg) => welcome(msg.chat.id, msg.chat.title || msg.chat.first_name));
+
+// Sends welcome message when bot joins new group
 bot.on('new_chat_members', async (msg) => {
-  const botID = await bot.getMe();
-  msg.new_chat_members?.forEach((member) => {
-    if (member.id === botID.id) {
-      bot.sendMessage(msg.chat.id, `¡GM ${msg.chat.title || msg.chat.first_name}!\n\nSoy Botillo, mira las cosas que puedo hacer por ti:\n\n- Reportar automaticamente el maximo o minimo mas reciente de Bitcoin\n/precio - Muestra el precio actual de Bitcoin\n/hilo - Muestra el máximo y mínimo del dia\n/start - Muestra este mensaje\n\nPuedes mirar mi codigo en GitHub: https://github.com/Fierillo/botillo\n\n¡Gracias por usarme!`, {disable_web_page_preview: true});
-    }
-  })
+  const botId = (await bot.getMe()).id;
+  msg.new_chat_members?.forEach(member => member.id === botId && welcome(msg.chat.id, msg.chat.title || msg.chat.first_name));
 });
