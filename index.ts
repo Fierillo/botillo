@@ -21,9 +21,6 @@ const client = new Client({
 // Discord bot token
 client.login(process.env.DISCORD_TOKEN_ORIGINAL!);
 
-// Set interval for Bitcoin price tracking
-const TIME_INTERVAL = Number(process.env.BOT_TIME_INTERVAL);
-
 // Telegram bot token
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!;
 const bot = new TelegramBot(TELEGRAM_BOT_TOKEN!, { polling: true });
@@ -90,7 +87,7 @@ const trackBitcoinPrice = async () => {
         await discordChannels[channelId].send(`🐻 nuevo mínimo diario de ฿: $${lastReportedMin}`);
       }
     }
-  }, TIME_INTERVAL);
+  }, 1000*210);
 };
 
 // Define cron job to reset daily highs and lows at midnight (UTC-3)
