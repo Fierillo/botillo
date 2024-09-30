@@ -99,10 +99,10 @@ schedule.scheduleJob('0 0 * * *', () => {
   lastReportedMax = 0;
   lastReportedMin = Infinity;
   for (const channelId in discordChannels) {
-    discordChannels[channelId].send(`🔄 reiniciando máximos y mínimos diarios...`);
+    discordChannels[channelId].send(`¡GN!\n🔄 reiniciando máximos y mínimos diarios...`);
   }
   for (const chatId in telegramChats) {
-      bot.sendMessage(chatId, `🔄 reiniciando máximos y mínimos diarios...`);
+      bot.sendMessage(chatId, `¡GN!\n🔄 reiniciando máximos y mínimos diarios...`);
   }
 });
 
@@ -117,7 +117,7 @@ client.on('ready', () => {
         const { max, min } = await getMaxMinPriceOfDay();
         lastReportedMax = max;  
         lastReportedMin = min;
-        channel.send(`¡Hola mundillo!\nMaximo diario de ฿: $${lastReportedMax}\n🐻 Minimo: $${lastReportedMin}`);
+        channel.send(`¡Hola mundillo!\nmáximo diario de ฿: $${lastReportedMax}\n🐻 mínimo: $${lastReportedMin}`);
       }
     });
   });
@@ -130,10 +130,10 @@ client.on('ready', () => {
 client.on('messageCreate', async (message: { content: string; channel: TextChannel; }) => {
   if (message.content === '/precio') {
     const price = await getBitcoinPrice();
-    (message.channel as TextChannel).send(`Precio de ฿: $${price}`);
+    (message.channel as TextChannel).send(`precio de ฿: $${price}`);
   } else if (message.content === '/hilo') {
     const { max, min } = await getMaxMinPriceOfDay();
-    (message.channel as TextChannel).send(`Máximo diario de ฿: $${max}\n🐻 Mínimo: $${min}`);
+    (message.channel as TextChannel).send(`máximo diario de ฿: $${max}\n🐻 mínimo: $${min}`);
 }});
 
 // TELEGRAM
@@ -149,7 +149,7 @@ bot.on('message', async (msg) => {
 // Send Bitcoin price when user writes /precio
 bot.onText(/\/precio/, async (msg) => {
   const price = await getBitcoinPrice();
-  bot.sendMessage(msg.chat.id, `Precio actual de ฿: $${price}`);
+  bot.sendMessage(msg.chat.id, `precio actual de ฿: $${price}`);
 });
 
 // Send High and Low prices when user writes /hilo
