@@ -19,6 +19,9 @@ const client = new Client({
   ] 
 });
 
+// Set time interval for autamatic bot updates
+const TIME_INTERVAL = 1000*210;
+
 // Discord bot token
 client.login(process.env.DISCORD_TOKEN_ORIGINAL!);
 
@@ -59,7 +62,7 @@ const trackBitcoinPrice = async () => {
     const { max, min } = await getMaxMinPriceOfDay();
     
     // If price is higher than reported max...
-    if (max > lastReportedMax) {
+    if (100*(max / lastReportedMax) > 101) {
       lastReportedMax = max;
       console.log(`Nuevo máximo diario: $${lastReportedMax}`);
       // Send to all Telegram chats...
@@ -75,7 +78,7 @@ const trackBitcoinPrice = async () => {
     }
 
     // If price is lower than reported min...
-    if (min < lastReportedMin) {
+    if (100*(min / lastReportedMin) < 99) {
       lastReportedMin = min;
       // Send to all Telegram chats...
       for (const chatId in telegramChats) {
@@ -88,7 +91,7 @@ const trackBitcoinPrice = async () => {
         await discordChannels[channelId].send(`🐻 nuevo mínimo diario de ฿: $${lastReportedMin}`);
       }
     }
-  }, 1000*210);
+  }, TIME_INTERVAL);
 };
 
 // Sends SE VIENE message at random intervals to all channels and chats where bot is
@@ -110,8 +113,8 @@ const trackBitcoinPrice = async () => {
   setTimeout(sendRandom, Math.random() * (21 - 1) + 1 * 3600*1000); // Interval between 1 and 21 hours
 })();
 
-// Define cron job to reset daily highs and lows at midnight (UTC-3)
-schedule.scheduleJob('0 0 * * *', () => { 
+// Define cron job to reset daily highs and lows at midnight (UTC = 00:00)
+schedule.scheduleJob('0 21 * * *', () => { // 21:00 at local time (UTC-3) = 00:00 UTC
   lastReportedMax = 0;
   lastReportedMin = Infinity;
   for (const channelId in discordChannels) {
