@@ -41,16 +41,17 @@ const getBitcoinPrice = async (): Promise<number> => {
 };
 
 // Define function that fetches the current max and min price of the day
-const getMaxMinPriceOfDay = async (): Promise<{ max: number, min: number }> => {
+const getMaxMinPriceOfDay = async (): Promise<{ max: number, min: number, volume: number }> => {
   try {
     const response = await axios.get('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT');
     return {
       max: parseInt(response.data.highPrice),
       min: parseInt(response.data.lowPrice),
+      volume: parseInt(response.data.Volume),
     };
   } catch (error) {
     console.error('Error al obtener los máximos/mínimos diarios:', error);
-    return { max: 0, min: Infinity };
+    return { max: 0, min: Infinity, volume: 0 };
   }
 };
 
