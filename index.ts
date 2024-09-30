@@ -1,5 +1,4 @@
 // Dependecy imports
-import { getRandomValues } from "crypto";
 import { TextChannel, Message } from "discord.js";
 import { config } from "dotenv";
 const axios = require('axios');
@@ -64,7 +63,6 @@ const trackBitcoinPrice = async () => {
     // If price is higher than reported max...
     if (100*(max / lastReportedMax) > 101) {
       lastReportedMax = max;
-      console.log(`Nuevo máximo diario: $${lastReportedMax}`);
       // Send to all Telegram chats...
       for (const chatId in telegramChats) {
         if (telegramChats[chatId]) {
@@ -118,10 +116,10 @@ schedule.scheduleJob('0 21 * * *', () => { // 21:00 at local time (UTC-3) = 00:0
   lastReportedMax = 0;
   lastReportedMin = Infinity;
   for (const channelId in discordChannels) {
-    discordChannels[channelId].send(`¡GN!\n🔄 reiniciando máximos y mínimos diarios...`);
+    discordChannels[channelId].send(`¡GN humanos!\n🔄 reiniciando máximos y mínimos diarios...`);
   }
   for (const chatId in telegramChats) {
-      bot.sendMessage(chatId, `¡GN!\n🔄 reiniciando máximos y mínimos diarios...`);
+      bot.sendMessage(chatId, `¡GN humanos!\n🔄 reiniciando máximos y mínimos diarios...`);
   }
 });
 
@@ -134,9 +132,7 @@ client.on('ready', () => {
         discordChannels[channel.id] = channel;
         console.log(`Discord channel: ${guild.name} [${channel.id}]`);
         const { max, min } = await getMaxMinPriceOfDay();
-        lastReportedMax = max;  
-        lastReportedMin = min;
-        channel.send(`¡Hola mundillo!\nmáximo diario de ฿: $${lastReportedMax}\n🐻 mínimo: $${lastReportedMin}`);
+        channel.send(`¡Hola mundillo!\nmáximo diario de ฿: $${max}\n🐻 mínimo diario de ฿: $${min}`);
       }
     });
   });
@@ -145,14 +141,14 @@ client.on('ready', () => {
   trackBitcoinPrice();
 });
 
-// Send Bitcoin price when user writes /precio
+// Send Bitcoin price when user writes /precio, and max/min BTC price when user writes /hilo
 client.on('messageCreate', async (message: { content: string; channel: TextChannel; }) => {
   if (message.content === '/precio') {
     const price = await getBitcoinPrice();
     (message.channel as TextChannel).send(`precio de ฿: $${price}`);
   } else if (message.content === '/hilo') {
     const { max, min } = await getMaxMinPriceOfDay();
-    (message.channel as TextChannel).send(`máximo diario de ฿: $${max}\n🐻 mínimo: $${min}`);
+    (message.channel as TextChannel).send(`máximo diario de ฿: $${max}\n🐻 mínimo diario de ฿: $${min}`);
 }});
 
 // Bot says GM every day at 8am (UTC-3)
