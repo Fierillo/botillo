@@ -159,7 +159,7 @@ bot.onText(/\/hilo/, async (msg) => {
 
 // Send welcome message when user writes /start
 bot.onText(/\/start/, (msg) => {
-  bot.sendMessage(msg.chat.id, `¡GM ${msg.chat.first_name}!\n\nSoy Botillo, mira las cosas que puedo hacer por ti:\n\n- Reportar automaticamente el maximo o minimo mas reciente de Bitcoin\n/precio - Muestra el precio actual de Bitcoin\n/hilo - Muestra el máximo y mínimo del dia\n/start - Muestra este mensaje\n\nPuedes mirar mi codigo en GitHub: https://github.com/Fierillo/botillo\n\n¡Gracias por usarme!`, {disable_web_page_preview: true});
+  bot.sendMessage(msg.chat.id, `¡GM ${msg.chat.title || msg.chat.first_name}!\n\nSoy Botillo, mira las cosas que puedo hacer por ti:\n\n- Reportar automaticamente el maximo o minimo mas reciente de Bitcoin\n/precio - Muestra el precio actual de Bitcoin\n/hilo - Muestra el máximo y mínimo del dia\n/start - Muestra este mensaje\n\nPuedes mirar mi codigo en GitHub: https://github.com/Fierillo/botillo\n\n¡Gracias por usarme!`, {disable_web_page_preview: true});
 });
 
 // Send welcome message when bot joins new group
