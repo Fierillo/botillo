@@ -138,13 +138,7 @@ client.on('messageCreate', async (message: { content: string; channel: TextChann
 
 // TELEGRAM
 
-// Initialize bot in Telegram fetching automatically the servers where the bot is and sending welcome messages
-bot.once('message', async (msg) => {
-  const chatTitle = msg.chat.title || msg.chat.first_name; // Dependiendo si es un grupo o un usuario
-  console.log(`Telegram chat: ${chatTitle} [${msg.chat.id}]`);
-  bot.sendMessage(msg.chat.id, `¡Hola mundillo!\nMaximo diario de ฿: $${lastReportedMax}\n🐻 Minimo: $${lastReportedMin}`);
-});
-
+// Stores the chats where the bot is
 bot.on('message', async (msg) => {
   const chatTitle = msg.chat.title || msg.chat.first_name;
   console.log(`Telegram chat: ${chatTitle} [${msg.chat.id}]`);
@@ -161,5 +155,27 @@ bot.onText(/\/precio/, async (msg) => {
 // Send High and Low prices when user writes /hilo
 bot.onText(/\/hilo/, async (msg) => {
   const { max, min } = await getMaxMinPriceOfDay();
-  bot.sendMessage(msg.chat.id, `Máximo diario de ฿: $${max}\n🐻 Mínimo: $${min}`);
+  bot.sendMessage(msg.chat.id, `máximo diario de ฿: $${max}\n🐻 mínimo: $${min}`);
+});
+
+// Send welcome message when user writes /start
+bot.onText(/\/start/, (msg) => {
+  bot.sendMessage(msg.chat.id, `¡GM ${msg.chat.title || msg.chat.first_name}!\nSoy Botillo, mira las cosas que puedo hacer por ti.\nReportar automaticamente el maximo o minimo mas reciente de Bitcoin\n/precio - Muestra el precio actual de Bitcoin\n/hilow - Muestra el máximo y mínimo del dia\n/start - Muestra este mensaje\n\nPuedes mirar mi codigo en GitHub: https://github.com/Fierillo/botillo\n¡Gracias por usarme!`);
+});
+
+// Send welcome message when bot joins new group
+bot.on('new_chat_members', async (msg) => {
+  const botID = await bot.getMe();
+  msg.new_chat_members?.forEach((member) => {
+    if (member.id === botID.id) {
+      bot.sendMessage(msg.chat.id, `¡GM ${msg.chat.title || msg.chat.first_name}!\nSoy Botillo, mira las cosas que puedo hacer por ti.\nReportar automaticamente el maximo o minimo mas reciente de Bitcoin\n/precio - Muestra el precio actual de Bitcoin\n/hilow - Muestra el máximo y mínimo del dia\n/start - Muestra este mensaje\n\nPuedes mirar mi codigo en GitHub: https://github.com/Fierillo/botillo\n¡Gracias por usarme!`);
+    }
+  })
+});
+
+// Bot says GM all days at 8am (UTC-3)
+schedule.scheduleJob('0 8 * * *', () => { 
+  bot.once('ready', (msg) => {
+    bot.sendMessage(msg.chat.id, `GM humanos 🧉`);
+  })
 });
