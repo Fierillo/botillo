@@ -95,7 +95,7 @@ const trackBitcoinPrice = async () => {
 };
 
 // Sends SE VIENE message at random intervals to all channels and chats where bot is
-(function sendRandom() {
+(function seViene() {
   const msgs = [
     { msg: "SE VIENE", weight: 6 },
     { msg: "🔥 SE RECONTRA VIENE", weight: 3 },
@@ -110,7 +110,7 @@ const trackBitcoinPrice = async () => {
   // Sends message to all Telegram and Discord chats
   Object.keys(telegramChats).forEach(chatId => bot.sendMessage(Number(chatId),selectedMsg!));
   Object.values(discordChannels).forEach(channel => channel.send(selectedMsg!));
-  setTimeout(sendRandom, Math.random() * (21 - 1) + 1 * 3600*1000); // Interval between 1 and 21 hours
+  setTimeout(seViene, Math.random() * ((21 - 1)*3600*1000) + 1 * 3600*1000); // Interval between 1 and 21 hours
 })();
 
 // Define cron job to reset daily highs and lows at midnight (UTC = 00:00)
