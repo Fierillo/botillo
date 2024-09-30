@@ -58,11 +58,11 @@ const getMaxMinPriceOfDay = async (): Promise<{ max: number, min: number, volume
 // Define function that tracks the Bitcoin price at regular intervals and report the max and min only if values surpass old reported values
 const trackBitcoinPrice = async () => {
   setInterval(async () => {
-    const price = await getBitcoinPrice();
+    const { max, min } = await getMaxMinPriceOfDay();
     
     // If price is higher than reported max...
-    if (price > lastReportedMax) {
-      lastReportedMax = price;
+    if (max > lastReportedMax) {
+      lastReportedMax = max;
       console.log(`Nuevo máximo diario: $${lastReportedMax}`);
       // Send to all Telegram chats...
       for (const chatId in telegramChats) {
@@ -77,9 +77,8 @@ const trackBitcoinPrice = async () => {
     }
 
     // If price is lower than reported min...
-    if (price < lastReportedMin) {
-      lastReportedMin = price;
-      console.log(`Nuevo mínimo diario: $${lastReportedMin}`);
+    if (min < lastReportedMin) {
+      lastReportedMin = min;
       // Send to all Telegram chats...
       for (const chatId in telegramChats) {
         if (telegramChats[chatId]) {
