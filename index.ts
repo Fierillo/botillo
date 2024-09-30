@@ -1,4 +1,5 @@
 // Dependecy imports
+import { getRandomValues } from "crypto";
 import { TextChannel, Message } from "discord.js";
 import { config } from "dotenv";
 const axios = require('axios');
@@ -89,6 +90,25 @@ const trackBitcoinPrice = async () => {
     }
   }, 1000*210);
 };
+
+// Sends SE VIENE message at random intervals to all channels and chats where bot is
+(function sendRandom() {
+  const msgs = [
+    { msg: "SE VIENE", weight: 6 },
+    { msg: "🔥 SE RECONTRA VIENE", weight: 3 },
+    { msg: "🫂 ABRACEN A SUS FAMILIAS! ", weight: 1 }
+  ];
+  
+  const totalWeight = msgs.reduce((sum, m) => sum + m.weight, 0);
+  const randomValue = Math.random() * totalWeight;
+  let weightSum = 0;
+  const selectedMsg = msgs.find(m => (weightSum += m.weight) >= randomValue)?.msg;
+  
+  // Sends message to all Telegram and Discord chats
+  Object.keys(telegramChats).forEach(chatId => bot.sendMessage(Number(chatId),selectedMsg!));
+  Object.values(discordChannels).forEach(channel => channel.send(selectedMsg!));
+  setTimeout(sendRandom, Math.random() * (21 - 1) + 1 * 3600*1000); // Interval between 1 and 21 hours
+})();
 
 // Define cron job to reset daily highs and lows at midnight (UTC-3)
 schedule.scheduleJob('0 0 * * *', () => { 
