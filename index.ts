@@ -155,6 +155,16 @@ client.on('messageCreate', async (message: { content: string; channel: TextChann
     (message.channel as TextChannel).send(`máximo diario de ฿: $${max}\n🐻 mínimo: $${min}`);
 }});
 
+// Bot says GM every day at 8am (UTC-3)
+schedule.scheduleJob('0 8 * * *', () => { 
+  for (const channelId in discordChannels) {
+    discordChannels[channelId].send(`GM humanos 🧉`);
+  }
+  for (const chatId in telegramChats) {
+    bot.sendMessage(chatId, `GM humanos 🧉`);
+  }
+});
+
 // TELEGRAM
 
 // Stores the chats where the bot is
@@ -187,14 +197,7 @@ bot.on('new_chat_members', async (msg) => {
   const botID = await bot.getMe();
   msg.new_chat_members?.forEach((member) => {
     if (member.id === botID.id) {
-      bot.sendMessage(msg.chat.id, `¡GM ${msg.chat.title}!\n\nSoy Botillo, mira las cosas que puedo hacer por ti:\n\n- Reportar automaticamente el maximo o minimo mas reciente de Bitcoin\n/precio - Muestra el precio actual de Bitcoin\n/hilo - Muestra el máximo y mínimo del dia\n/start - Muestra este mensaje\n\nPuedes mirar mi codigo en GitHub: https://github.com/Fierillo/botillo\n\n¡Gracias por usarme!`, {disable_web_page_preview: true});
+      bot.sendMessage(msg.chat.id, `¡GM ${msg.chat.title || msg.chat.first_name}!\n\nSoy Botillo, mira las cosas que puedo hacer por ti:\n\n- Reportar automaticamente el maximo o minimo mas reciente de Bitcoin\n/precio - Muestra el precio actual de Bitcoin\n/hilo - Muestra el máximo y mínimo del dia\n/start - Muestra este mensaje\n\nPuedes mirar mi codigo en GitHub: https://github.com/Fierillo/botillo\n\n¡Gracias por usarme!`, {disable_web_page_preview: true});
     }
-  })
-});
-
-// Bot says GM all days at 8am (UTC-3)
-schedule.scheduleJob('0 8 * * *', () => { 
-  bot.once('ready', (msg) => {
-    bot.sendMessage(msg.chat.id, `GM humanos 🧉`);
   })
 });
