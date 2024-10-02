@@ -190,7 +190,7 @@ bot.on('new_chat_members', async (msg) => {
 
 // Bot replies VERDADERO or FALSO when user asks it directly or tag it, finishing with a "?"
 bot.on('message', async (msg) => {
-  if (msg.text && (msg.text.includes(`@${(await bot.getMe()).id}`) || msg.reply_to_message?.from?.id === (await bot.getMe()).id) && msg.text.endsWith('?')) {
+  if (msg.text && (msg.text.includes(`@${(await bot.getMe()).username}`) || msg.reply_to_message?.from?.id === (await bot.getMe()).id) && msg.text.endsWith('?')) {
     bot.sendMessage(msg.chat.id, Math.random() < 0.5 ? '✅ VERDADERO' : '❌ FALSO');
   }
 });
