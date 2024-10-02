@@ -165,10 +165,11 @@ schedule.scheduleJob('0 8 * * *', () => {
 
 // Stores the chats where the bot is
 bot.on('message', (msg) => {
-  const chatTitle = msg.chat.title || msg.chat.first_name;
-  console.log(`Telegram chat: ${chatTitle} [${msg.chat.id}]`);
-  telegramChats[msg.chat.id] = true;
-  console.log(telegramChats)
+  if (!telegramChats.hasOwnProperty(msg.chat.id)) {
+    telegramChats[msg.chat.id] = true;
+    console.log(`Telegram chat: ${msg.chat.title || msg.chat.first_name} [${msg.chat.id}]`);
+    console.log(telegramChats)
+  }
 });
 
 // Send Bitcoin price when user writes /precio
