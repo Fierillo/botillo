@@ -164,7 +164,7 @@ schedule.scheduleJob('0 8 * * *', () => {
 // TELEGRAM
 
 // Stores the chats where the bot is
-bot.on('message', async (msg) => {
+bot.on('message', (msg) => {
   const chatTitle = msg.chat.title || msg.chat.first_name;
   console.log(`Telegram chat: ${chatTitle} [${msg.chat.id}]`);
   telegramChats[msg.chat.id] = true;
@@ -200,4 +200,9 @@ bot.on('message', async (msg) => {
   if (msg.text && (msg.text.includes(`@${(await bot.getMe()).id}`) || msg.reply_to_message?.from?.id === (await bot.getMe()).id) && msg.text.endsWith('?')) {
     bot.sendMessage(msg.chat.id, Math.random() < 0.5 ? '✅ VERDADERO' : '❌ FALSO');
   }
+});
+
+// Bot replies ME CHUPA LA PIJA LA OPINION DE LAS KUKAS when users write "peron*", "kuka*", "kirchner*", "zurdo*"
+bot.onText(/(?<=\s|^)(peron|kuka|kirchner|zurdo)\w*/, (msg) => {
+  bot.sendMessage(msg.chat.id, 'ME CHUPA LA PIJA LA OPINION DE LAS KUKAS');
 });
