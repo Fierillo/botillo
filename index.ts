@@ -94,16 +94,8 @@ const trackBitcoinPrice = async () => {
 
 // Sends SE VIENE message at random intervals to all channels and chats where bot is
 (function seViene() {
-  const msgs = [
-    { msg: "SE VIENE", weight: 6 },
-    { msg: "🔥 SE RECONTRA VIENE", weight: 3 },
-    { msg: "🫂 ABRACEN A SUS FAMILIAS! ", weight: 1 }
-  ];
-  
-  const totalWeight = msgs.reduce((sum, m) => sum + m.weight, 0);
-  const randomValue = Math.random() * totalWeight;
-  let weightSum = 0;
-  const selectedMsg = msgs.find(m => (weightSum += m.weight) >= randomValue)?.msg;
+  const luckyNumber = Math.random();
+  const selectedMsg = luckyNumber <= 0.1 ? '🫂 ABRACEN A SUS FAMILIAS!' : luckyNumber <= 0.8 ? 'SE VIENE' : '🔥 SE RECONTRA VIENE';
   
   // Sends message to all Telegram and Discord chats
   Object.keys(telegramChats).forEach(chatId => bot.sendMessage(Number(chatId),selectedMsg!));
