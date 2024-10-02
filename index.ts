@@ -18,7 +18,7 @@ const client = new Client({
   ] 
 });
 
-// Set time interval for autamatic bot updates
+// Set time interval for automatic bot updates
 const TIME_INTERVAL = 1000*210;
 
 // Discord bot token
@@ -204,6 +204,6 @@ bot.on('message', async (msg) => {
 });
 
 // Bot replies ME CHUPA LA PIJA LA OPINION DE LAS KUKAS when users write "peron*", "kuka*", "kirchner*", "zurdo*"
-bot.onText(/(?<=\s|^)(peron|kuka|kirchner|zurdo)\w*/, (msg) => {
+bot.onText(/(?<=\s|^)(peron|kuka|kirchner|zurdo)\w*/i, (msg) => {
   bot.sendMessage(msg.chat.id, 'ME CHUPA LA PIJA LA OPINION DE LAS KUKAS');
 });
