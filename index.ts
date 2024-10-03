@@ -199,3 +199,9 @@ bot.on('message', async (msg) => {
 bot.onText(/(?<=\s|^)(peron|kuka|kirchner|zurdo)\w*/i, (msg) => {
   bot.sendMessage(msg.chat.id, 'ME CHUPA LA PIJA LA OPINION DE LAS KUKAS');
 });
+
+// Bot replies to shitcoiners
+bot.onText(/(?<=\s|^)(eth|solana|sol |bcash|bch |polkadot|dot |cardano|ada )\w*/i, (msg) => {
+  bot.sendMessage(msg.chat.id, '🚨 ALERTA DU SHITCOINER 🚨');
+});
+
