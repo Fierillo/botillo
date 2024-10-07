@@ -264,14 +264,10 @@ setInterval( async() => {
 
 // Define timer to promote prodillo game with a misterious message
 (async function promoteProdillo() {
-  let promotion = setInterval(async () => {
-    for (const chatId in telegramChats) {
-      await bot.sendMessage(chatId, `🟧 ${(await deadline()).winnerDeadline}`);
-    }
-  }, Math.random()*1000*60*209+1000*60); // random interval between 1 and 210 minutes
-  if ((await deadline()).winnerDeadline !== 0) {
-    setTimeout(promoteProdillo, Math.random()*1000*60*210+1000);
+  for (const chatId in telegramChats) {
+    await bot.sendMessage(chatId, `🟧 ${(await deadline()).winnerDeadline}`);
   }
+  setTimeout(promoteProdillo, Math.random()*1000*60*210+1000);
 })();
 
 // Stores user predictions of BTC price in a JSON file and replies a reminder with the deadline
