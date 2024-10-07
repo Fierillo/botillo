@@ -4,6 +4,8 @@ import { config } from "dotenv";
 const axios = require('axios');
 const schedule = require('node-schedule');
 import TelegramBot from 'node-telegram-bot-api';
+const fs = require('fs');
+const path = require('path');
 
 // Load environment variables from .env file
 config();
@@ -18,12 +20,14 @@ const client = new Client({
   ] 
 });
 
+// CONSTANTS
+const PRODILLO_FILE = path.join(__dirname, 'prodillo.json');
 // Set time interval for automatic bot updates
 const TIME_INTERVAL = 1000*210;
-
+// Set time interval for prodillo game
+const PRODILLO_TIME_INTERVAL = 1000*21;
 // Discord bot token
 client.login(process.env.DISCORD_TOKEN_ORIGINAL!);
-
 // Telegram bot token
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!;
 const bot = new TelegramBot(TELEGRAM_BOT_TOKEN!, { polling: true });
@@ -32,7 +36,27 @@ const bot = new TelegramBot(TELEGRAM_BOT_TOKEN!, { polling: true });
 let lastReportedMax: number = 0;
 let lastReportedMin: number = Infinity;
 let telegramChats: { [key: number]: boolean } = {};
-let discordChannels: { [key: string]: TextChannel } = {}; 
+let discordChannels: { [key: string]: TextChannel } = {};
+let prodilloData: { [key: string]: number } = {};
+let isProdilleabe: boolean = false;
+let bitcoinMax: number = 0;
+let isTest: boolean = false;
+
+// If bot is restarted, prodilloData is restored from file
+try {
+  prodilloData = JSON.parse(fs.readFileSync(PRODILLO_FILE, 'utf-8'));
+} catch (e) {
+  console.warn('No se pudo leer el archivo de predicciones. Se iniciará uno nuevo.');
+}
+
+// Initialize starting deadline for Prodillo game, next Bitcoin difficulty adjustment using mempool API
+async function deadline() {
+  const latestHeight = await axios.get('https://mempool.space/api/blocks/tip/height');
+  return {
+    winnerDeadline: 2016 - latestHeight.data % 2016, // 2016 is the Bitcoin difficulty adjustment
+    prodilleableDeadline: (2016 - latestHeight.data % 2016) - 420, // prodillos can be submitted 420 blocks before the difficulty adjustment
+  }
+}
 
 // Define function that fetches the Bitcoin price using Binance API
 const getBitcoinPrice = async (): Promise<number> => {
@@ -205,3 +229,85 @@ bot.onText(/(?<=\s|^)(eth|solana|sol |bcash|bch |polkadot|dot |cardano|ada )\w*/
   bot.sendMessage(msg.chat.id, '🚨 ALERTA DU SHITCOINER 🚨');
 });
 
+bot.onText(/\/test/, (msg) => {
+  isTest = true;
+});
+
+// Defines interval that checks deadlines and enable/disable prodillos. When deadline is over, sends a message to all Telegram chats to let them know the winner
+setInterval( async() => {
+  // Check if deadline for prodillos is over
+  isProdilleabe = (await deadline()).prodilleableDeadline > 0 || true;
+  const price = await getBitcoinPrice();
+  // Updates bitcoinMax to track maximum BTC price in the current round
+  if (price > bitcoinMax) {
+    bitcoinMax = price;
+  }
+  if ((await deadline()).winnerDeadline === 0 || isTest) {
+    const prodillos = JSON.parse(await fs.promises.readFile(PRODILLO_FILE, 'utf-8'));
+    console.log(prodillos);
+    const prodillosSorted = Object.entries(prodillos).sort(([,a],[,b]) => Math.abs(a as number - bitcoinMax) - Math.abs(b as number - bitcoinMax));
+    console.log(prodillosSorted);
+    const formattedList = prodillosSorted.map(([user, predict]) => {
+      console.log(`Procesando: User ${user}, Predict ${predict}`);
+      return `${user}: $${predict} (dif: ${(Math.abs(predict as unknown as number - bitcoinMax))})`}).join('\n');
+    
+    for (const chatId in telegramChats) {
+      await bot.sendMessage(636054907, `🏁 ¡LA RONDA A LLEGADO A SU FIN!\nMaximo de ฿ de esta ronda: $${bitcoinMax}\n------------------------------------------\n${formattedList}\n\nEl ganador es ${prodillosSorted[0][0]} 🏆`);
+    }
+    bitcoinMax = 0;
+    // Wipe prodillo.json file
+    fs.writeFileSync(PRODILLO_FILE, JSON.stringify({}, null, 2));
+    // Write Hal Finney prediction as tribute
+    fs.writeFileSync(PRODILLO_FILE, JSON.stringify({'Hal Finney': 10000000}, null, 2));
+  }
+}, PRODILLO_TIME_INTERVAL);
+
+// Define timer to promote prodillo game with a misterious message
+(async function promoteProdillo() {
+  let promotion = setInterval(async () => {
+    for (const chatId in telegramChats) {
+      await bot.sendMessage(chatId, `🟧 ${(await deadline()).winnerDeadline}`);
+    }
+  }, Math.random()*1000*60*209+1000*60); // random interval between 1 and 210 minutes
+  if ((await deadline()).winnerDeadline !== 0) {
+    setTimeout(promoteProdillo, Math.random()*1000*60*210+1000);
+  }
+})();
+
+// Stores user predictions of BTC price in a JSON file and replies a reminder with the deadline
+bot.onText(/\/prodillo/, async (msg) => {
+  
+  // Calls deadline function and stores in local variables
+  const { winnerDeadline, prodilleableDeadline } = await deadline();
+  
+  // If deadline for prodillos is over, returns a message to the users to let them know
+  if(!isProdilleabe) 
+    return await bot.sendMessage(msg.chat.id, `Tarde loko!\nespera ${winnerDeadline} bloques que comience una nueva ronda de prodillos!`);
+
+  const user = msg.from?.username;
+  const predict = Number(msg.text?.split('/prodillo ')[1]);
+  if (isProdilleabe && user && !isNaN(predict)) {
+    // Stores user prediction in a JSON file
+    prodilloData[user] = Number(predict);
+    fs.writeFileSync(PRODILLO_FILE, JSON.stringify(prodilloData, null, 2));
+    
+    // Sends a reminder with the deadline
+    await bot.sendMessage(msg.chat.id, `Prodillo de ${user} registrado: $${predict}\n\n🟧⛏️ Tiempo restante para mandar prodillos: ${isProdilleabe? prodilleableDeadline : 0} bloques\n🏁 Tiempo restante para saber ganador: ${winnerDeadline} bloques`, {disable_web_page_preview: true});
+  } else await bot.sendMessage(msg.chat.id, '¡Ingresaste cualquier cosa loko!\n\n/prodillo <numero>');
+});
+
+// When user writes /lista, sends a list of all registered prodillos
+bot.onText(/\/lista/, async (msg) => {
+  try {
+    const prodillos = JSON.parse(await fs.promises.readFile(PRODILLO_FILE, 'utf-8'));
+    const { winnerDeadline, prodilleableDeadline } = await deadline();
+    const formattedList = Object.entries(prodillos).map(([user, predict]) => {
+      return `${user}: $${predict} (dif: ${(Math.abs(predict as number - bitcoinMax))})`}).join('\n');
+    console.log(formattedList);
+    
+    await bot.sendMessage(msg.chat.id, `🗒 LISTA DE PRODILLOS\nPrecio maximo de ฿ en esta ronda: $${bitcoinMax}\n------------------------------------------\n${formattedList}\n\n🟧⛏️ Tiempo restante para mandar prodillos: ${isProdilleabe? prodilleableDeadline : 0} bloques\n🏁 Tiempo restante para saber ganador: ${winnerDeadline} bloques`);
+  } catch (error) {
+    console.error('Error al leer o enviar la lista:', error);
+    await bot.sendMessage(msg.chat.id, 'No se pudo obtener la lista de prodillos.');
+  }
+});
