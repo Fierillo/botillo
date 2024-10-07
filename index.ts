@@ -230,7 +230,7 @@ bot.onText(/(?<=\s|^)(eth|solana|sol |bcash|bch |polkadot|dot |cardano|ada )\w*/
   bot.sendMessage(msg.chat.id, '🚨 ALERTA DU SHITCOINER 🚨');
 });
 
-bot.onText(/\/test/, (msg) => {
+/*bot.onText(/\/test/, (msg) => {
   const test = msg.text?.split('/test ')[1];
   if (test === 'on') {
     isTest = true;
@@ -244,7 +244,7 @@ bot.onText(/\/test/, (msg) => {
   } else {
     bot.sendMessage(msg.chat.id, '¡Ingresaste cualquier cosa loko!\n\n/test on - Activa el modo de prueba\n/test off - Desactiva el modo de prueba');
   }
-});
+});*/
 
 // Defines interval that checks deadlines and enable/disable prodillos. When deadline is over, sends a message to all Telegram chats to let them know the winner
 setInterval( async() => {
@@ -263,7 +263,7 @@ setInterval( async() => {
   }
   
   // Triggers win event if deadline is over (difficulty adjustment of Bitcoin)
-  if ((await deadline()).winnerDeadline === 0 || isWin) {
+  if ((await deadline()).winnerDeadline === 0) {
     let prodillos: Record<string, { user: string; predict: number }>;
     prodillos = JSON.parse(await fs.promises.readFile(PRODILLO_FILE, 'utf-8'));
     const prodillosSorted = Object.entries(prodillos).sort(([,a],[,b]) => 
@@ -273,7 +273,7 @@ setInterval( async() => {
       return `${user}: $${predict} (dif: ${(Math.abs(predict as unknown as number - bitcoinMax))})`}).join('\n');
     
     for (const chatId in telegramChats) {
-      await bot.sendMessage(636054907, `🏁 ¡LA RONDA A LLEGADO A SU FIN!\nMaximo de ฿ de esta ronda: $${bitcoinMax}\n------------------------------------------\n${formattedList}\n\nEl ganador es ${prodillosSorted[0][1].user} 🏆`);
+      await bot.sendMessage(chatId, `🏁 ¡LA RONDA A LLEGADO A SU FIN!\nMaximo de ฿ de esta ronda: $${bitcoinMax}\n------------------------------------------\n${formattedList}\n\nEl ganador es ${prodillosSorted[0][1].user} 🏆`);
     }
     bitcoinMax = 0;
     // Wipe prodillo.json file
@@ -305,7 +305,7 @@ bot.onText(/\/prodillo/, async (msg) => {
   const user = msg.from?.username;
   const predict = Number(msg.text?.split('/prodillo ')[1]);
   
-  if ((isProdilleabe || isTest) && userId && user && !isNaN(predict)) {
+  if ((isProdilleabe || isTest) && userId && user && !isNaN(predict) && predict >= 0) {
     let prodilloData: Record<string, { user: string; predict: number }> = {};
 
     // try to read prodillo.json file
