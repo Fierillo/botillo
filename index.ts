@@ -177,13 +177,13 @@ schedule.scheduleJob('0 8 * * *', () => {
   }
 });
 
-// TELEGRAM
+// ------------TELEGRAM ONLY-------------
 
 // Stores the chats where the bot is
 bot.on('message', (msg) => {
   if (!telegramChats.hasOwnProperty(msg.chat.id)) {
     telegramChats[msg.chat.id] = true;
-    console.log(`Telegram chat: ${msg.chat.title || msg.chat.first_name} [${msg.chat.id}]`);
+    console.log(`Added telegram chat: ${msg.chat.title || msg.chat.first_name} [${msg.chat.id}]`);
     console.log(telegramChats)
   }
 });
@@ -230,7 +230,16 @@ bot.onText(/(?<=\s|^)(eth|solana|sol |bcash|bch |polkadot|dot |cardano|ada )\w*/
 });
 
 bot.onText(/\/test/, (msg) => {
-  isTest = true;
+  const test = msg.text?.split('/test ')[1];
+  if (test === 'on') {
+    isTest = true;
+    bot.sendMessage(msg.chat.id, '🟢 TEST ON');
+  } else if (test === 'off') {
+    isTest = false;
+    bot.sendMessage(msg.chat.id, '🔴 TEST OFF');
+  } else {
+    bot.sendMessage(msg.chat.id, '¡Ingresaste cualquier cosa loko!\n\n/test on - Activa el modo de prueba\n/test off - Desactiva el modo de prueba');
+  }
 });
 
 // Defines interval that checks deadlines and enable/disable prodillos. When deadline is over, sends a message to all Telegram chats to let them know the winner
@@ -277,14 +286,20 @@ bot.onText(/\/prodillo/, async (msg) => {
   const { winnerDeadline, prodilleableDeadline } = await deadline();
   
   // If deadline for prodillos is over, returns a message to the users to let them know
-  if(!isProdilleabe) 
+  if(!isProdilleabe && !isTest) {
     return await bot.sendMessage(msg.chat.id, `Tarde loko!\nespera ${winnerDeadline} bloques que comience una nueva ronda de prodillos!`);
-
+  }
+  const userId = msg.from?.id;
   const user = msg.from?.username;
   const predict = Number(msg.text?.split('/prodillo ')[1]);
-  if (isProdilleabe && user && !isNaN(predict)) {
+  
+  if ((isProdilleabe || isTest) && userId && user && !isNaN(predict)) {
+    let prodilloData: Record<string, { user: string; predict: number }> = {};
     // Stores user prediction in a JSON file
-    prodilloData[user] = Number(predict);
+    prodilloData[userId] = {
+      user: user,
+      predict: predict,
+    };
     fs.writeFileSync(PRODILLO_FILE, JSON.stringify(prodilloData, null, 2));
     
     // Sends a reminder with the deadline
