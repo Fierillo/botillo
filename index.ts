@@ -236,13 +236,13 @@ bot.onText(/\/test/, (msg) => {
 // Defines interval that checks deadlines and enable/disable prodillos. When deadline is over, sends a message to all Telegram chats to let them know the winner
 setInterval( async() => {
   // Check if deadline for prodillos is over
-  isProdilleabe = (await deadline()).prodilleableDeadline > 0 || true;
+  isProdilleabe = (await deadline()).prodilleableDeadline > 0;
   const price = await getBitcoinPrice();
   // Updates bitcoinMax to track maximum BTC price in the current round
   if (price > bitcoinMax) {
     bitcoinMax = price;
   }
-  if ((await deadline()).winnerDeadline === 0 || isTest) {
+  if ((await deadline()).winnerDeadline === 0) {
     const prodillos = JSON.parse(await fs.promises.readFile(PRODILLO_FILE, 'utf-8'));
     console.log(prodillos);
     const prodillosSorted = Object.entries(prodillos).sort(([,a],[,b]) => Math.abs(a as number - bitcoinMax) - Math.abs(b as number - bitcoinMax));
@@ -252,7 +252,7 @@ setInterval( async() => {
       return `${user}: $${predict} (dif: ${(Math.abs(predict as unknown as number - bitcoinMax))})`}).join('\n');
     
     for (const chatId in telegramChats) {
-      await bot.sendMessage(636054907, `🏁 ¡LA RONDA A LLEGADO A SU FIN!\nMaximo de ฿ de esta ronda: $${bitcoinMax}\n------------------------------------------\n${formattedList}\n\nEl ganador es ${prodillosSorted[0][0]} 🏆`);
+      await bot.sendMessage(chatId, `🏁 ¡LA RONDA A LLEGADO A SU FIN!\nMaximo de ฿ de esta ronda: $${bitcoinMax}\n------------------------------------------\n${formattedList}\n\nEl ganador es ${prodillosSorted[0][0]} 🏆`);
     }
     bitcoinMax = 0;
     // Wipe prodillo.json file
