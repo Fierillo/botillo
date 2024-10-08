@@ -43,6 +43,7 @@ let isProdilleabe: boolean = false;
 let bitcoinMax: number = 0;
 let isTest: boolean = false;
 let isWin: boolean = false;
+let isWon: boolean = false
 
 // Restores prodillos from JSON file
 try {
@@ -261,6 +262,11 @@ setInterval( async() => {
   
   // Check if deadline for prodillos is over
   isProdilleabe = (await deadline()).prodilleableDeadline > 0;
+  
+  // Check if winner has been announced and some blocks passed
+  if (isWon && (await deadline()).winnerDeadline === 2000) {
+    isWon = false
+  }
   const price = await getBitcoinPrice();
   const dailyMax = (await getMaxMinPriceOfDay()).max;
   
@@ -275,7 +281,7 @@ setInterval( async() => {
   }
   
   // Triggers win event if deadline is over (difficulty adjustment of Bitcoin)
-  if ((await deadline()).winnerDeadline === 0) {
+  if ((await deadline()).winnerDeadline === 0 && !isWon) {
     prodillos = JSON.parse(await fs.promises.readFile(PRODILLO_FILE, 'utf-8'));
     const prodillosSorted = Object.entries(prodillos).sort(([,a],[,b]) => 
       Math.abs(a.predict - bitcoinMax) - Math.abs(b.predict - bitcoinMax)
@@ -291,6 +297,9 @@ setInterval( async() => {
     fs.writeFileSync(PRODILLO_FILE, JSON.stringify({}, null, 2));
     // Write Hal Finney prediction as tribute
     fs.writeFileSync(PRODILLO_FILE, JSON.stringify({'0': {user: 'Hal Finney', predict: 10000000}}, null, 2));
+    // Wipe bitcoin.json file
+    fs.writeFileSync(BITCOIN_FILE, JSON.stringify({bitcoinMax: 0}, null, 2));
+    isWon = true
   }
 }, PRODILLO_TIME_INTERVAL);
 
