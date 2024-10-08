@@ -32,6 +32,8 @@ client.login(process.env.DISCORD_TOKEN_ORIGINAL!);
 // Telegram bot token
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!;
 const bot = new TelegramBot(TELEGRAM_BOT_TOKEN!, { polling: true });
+// Prodillo trophy
+const trofeillo = '🏆 ';
 
 // Define initial variables
 let lastReportedMax: number = 0;
@@ -43,7 +45,7 @@ let isProdilleabe: boolean = false;
 let bitcoinMax: number = 0;
 let isTest: boolean = false;
 let isWin: boolean = false;
-let isWon: boolean = false
+let isWon: boolean = false;
 
 // Restores prodillos from JSON file
 try {
@@ -288,10 +290,31 @@ setInterval( async() => {
     );
     const formattedList = prodillosSorted.map(([userId, { user, predict }]) => {
       return `${user}: $${predict} (dif: ${(Math.abs(predict as unknown as number - bitcoinMax))})`}).join('\n');
+
+    const winnerId = prodillosSorted[0][0];
+    const winnerName = prodillosSorted[0][1].user;
     
     for (const chatId in telegramChats) {
-      await bot.sendMessage(chatId, `🏁 ¡LA RONDA A LLEGADO A SU FIN!\nMaximo de ฿ de esta ronda: $${bitcoinMax}\n------------------------------------------\n${formattedList}\n\nEl ganador es ${prodillosSorted[0][1].user} 🏆`);
+      await bot.sendMessage(chatId, `🏁 ¡LA RONDA A LLEGADO A SU FIN!\nMaximo de ฿ de esta ronda: $${bitcoinMax}\n------------------------------------------\n${formattedList}\n\nEl ganador es ${winnerName} 🏆`);
     }
+
+    let trofeillos: Record<string, { name: string; trofeos: string }> = {};
+    try {
+    trofeillos = JSON.parse(await fs.readFile('trofeillos.json', 'utf-8'));
+    } catch (error) {
+    // If trofeillos doesn't exist, this will be an empty object
+    }
+
+    // Add the new trophy to winner
+    if (!trofeillos[winnerId]) {
+      trofeillos[winnerId] = { name: winnerName, trofeos: trofeillo };
+    } else {
+      trofeillos[winnerId].trofeos += trofeillo; // Add a new trophy
+    }
+  
+    // Save the new trophy status in a JSON file
+    await fs.writeFile('trofeillos.json', JSON.stringify(trofeillos, null, 2));
+
     bitcoinMax = 0;
     // Wipe prodillo.json file
     fs.writeFileSync(PRODILLO_FILE, JSON.stringify({}, null, 2));
@@ -338,7 +361,7 @@ bot.onText(/\/prodillo/, async (msg) => {
       const fileContent = await fs.promises.readFile(PRODILLO_FILE, 'utf-8');
       prodillos = JSON.parse(fileContent);
     } catch (error) {
-
+      console.error('Error leyendo prodillos.json:', error);
     }
     
     // Stores user prediction in a prodillo.json file
@@ -366,4 +389,25 @@ bot.onText(/\/lista/, async (msg) => {
     console.error('Error al leer o enviar la lista:', error);
     await bot.sendMessage(msg.chat.id, 'No se pudo obtener la lista de prodillos.');
   }
+});
+
+// When user writes /trofeillos, sends a list of all winners of the game and the number of trophys of each one
+bot.onText(/\/trofeillos/, (msg) => {
+  
+  // Define local variable to store the list of winners
+  let trofeillos: Record<string, { name: string; trofeos: string }> = {};
+  
+  // Read trofeillos.json to get the list of winners
+  try {
+    trofeillos = JSON.parse(fs.readFileSync('trofeillos.json', 'utf-8'));
+  } catch (e) {
+    trofeillos = {};
+  }
+
+  let mensaje = "🏆 Lista de Ganadores 🏆\n";
+  for (const [id, data] of Object.entries(trofeillos)) {
+    mensaje += `\n- ${data.name}: ${data.trofeos}`;
+  }
+
+  bot.sendMessage(msg.chat.id, mensaje || "No hay ganadores aún.");
 });
