@@ -23,6 +23,7 @@ const client = new Client({
 // CONSTANTS
 const PRODILLO_FILE = path.join(__dirname, 'prodillo.json');
 const BITCOIN_FILE = path.join(__dirname, 'bitcoin.json');
+const TROFEILLOS_FILE = path.join(__dirname, 'trofeillos.json');
 // Set time interval for automatic bot updates
 const TIME_INTERVAL = 1000*210;
 // Set time interval for prodillo game
@@ -291,6 +292,7 @@ setInterval( async() => {
     const formattedList = prodillosSorted.map(([userId, { user, predict }]) => {
       return `${user}: $${predict} (dif: ${(Math.abs(predict as unknown as number - bitcoinMax))})`}).join('\n');
 
+    console.log(prodillosSorted);
     const winnerId = prodillosSorted[0][0];
     const winnerName = prodillosSorted[0][1].user;
     
@@ -313,15 +315,17 @@ setInterval( async() => {
     }
   
     // Save the new trophy status in a JSON file
-    await fs.writeFile('trofeillos.json', JSON.stringify(trofeillos, null, 2));
+    fs.writeFileSync(TROFEILLOS_FILE, JSON.stringify(trofeillos, null, 2));
 
+    // Restart max BTC price for the nex round
     bitcoinMax = 0;
+    // Wipe bitcoin.json file
+    fs.writeFileSync(BITCOIN_FILE, JSON.stringify({bitcoinMax: 0}, null, 2));
     // Wipe prodillo.json file
     fs.writeFileSync(PRODILLO_FILE, JSON.stringify({}, null, 2));
     // Write Hal Finney prediction as tribute
     fs.writeFileSync(PRODILLO_FILE, JSON.stringify({'0': {user: 'Hal Finney', predict: 10000000}}, null, 2));
-    // Wipe bitcoin.json file
-    fs.writeFileSync(BITCOIN_FILE, JSON.stringify({bitcoinMax: 0}, null, 2));
+    // Prevents that win event is triggered again for a while
     isWon = true
   }
 }, PRODILLO_TIME_INTERVAL);
@@ -404,10 +408,10 @@ bot.onText(/\/trofeillos/, (msg) => {
     trofeillos = {};
   }
 
-  let mensaje = "🏆 Lista de Ganadores 🏆\n";
+  let mensaje = "";
   for (const [id, data] of Object.entries(trofeillos)) {
     mensaje += `\n- ${data.name}: ${data.trofeos}`;
   }
 
-  bot.sendMessage(msg.chat.id, mensaje || "No hay ganadores aún.");
+  bot.sendMessage(msg.chat.id, `🏆 SALON DE GANADORES 🏆\n-----------------------------------\n${mensaje || 'No hay ganadores aún.'}`);
 });
