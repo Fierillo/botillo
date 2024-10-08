@@ -281,7 +281,7 @@ setInterval( async() => {
   }
   
   // Triggers win event if deadline is over (difficulty adjustment of Bitcoin)
-  if ((await deadline()).winnerDeadline === 0 && !isWon) {
+  if (((await deadline()).winnerDeadline === 0 && !isWon) || isWin) {
     prodillos = JSON.parse(await fs.promises.readFile(PRODILLO_FILE, 'utf-8'));
     const prodillosSorted = Object.entries(prodillos).sort(([,a],[,b]) => 
       Math.abs(a.predict - bitcoinMax) - Math.abs(b.predict - bitcoinMax)
@@ -307,6 +307,12 @@ setInterval( async() => {
 (async function promoteProdillo() {
   for (const chatId in telegramChats) {
     await bot.sendMessage(chatId, `🟧 ${(await deadline()).winnerDeadline}`);
+  }
+  if (isWon) {
+    for (const chatId in telegramChats) {
+      await bot.sendMessage(chatId, `¡BIEVENIDOS AL JUEGO DEL PRODILLO!\n¿Como funciona? 👇\n\nAdivina el maximo precio de BTC de el ciclo, este terminara cuando sea el proximo ajuste de dificultad de Bitcoin.\n¿Que hay que hacer?\nSolo tienes que registrar tu prediccion con /prodillo <precio> y listo, ¡ya estas jugando!\n\nSe podran mandar predicciones hasta 420 bloques antes del proximo ajuste de dificultad de Bitcoin.\n\nUsa el comando /lista para ver todas las predicciones registradas hasta el momento y el precio maximo de BTC en el ciclo actual.\n\n¡Eso es todo!\n¡Gracias por jugar! 🫡`);
+    }
+    return
   }
   setTimeout(promoteProdillo, Math.random()*1000*60*210+1000*60); // 
 })();
