@@ -22,6 +22,7 @@ const client = new Client({
 
 // CONSTANTS
 const PRODILLO_FILE = path.join(__dirname, 'prodillo.json');
+const BITCOIN_FILE = path.join(__dirname, 'bitcoin.json');
 // Set time interval for automatic bot updates
 const TIME_INTERVAL = 1000*210;
 // Set time interval for prodillo game
@@ -43,12 +44,21 @@ let bitcoinMax: number = 0;
 let isTest: boolean = false;
 let isWin: boolean = false;
 
-// If bot is restarted, prodilloData is restored from file
+// Restores prodillos from JSON file
 try {
   prodillos = JSON.parse(fs.readFileSync(PRODILLO_FILE, 'utf-8'));
 } catch (e) {
   console.warn('No se pudo leer el archivo de predicciones. Se iniciará uno nuevo.');
 }
+
+// Restores max Bitcoin price of the current round from JSON file
+try {
+  let data = JSON.parse(fs.readFileSync('bitcoinMax.json', 'utf-8'));
+  bitcoinMax = data.bitcoinMax || 0; // Usa el valor del archivo o 0 si no está definido
+} catch (e) {
+  console.warn('No se pudo leer el archivo de máximo precio de Bitcoin. Se iniciará uno nuevo.');
+}
+
 
 // Initialize starting deadline for Prodillo game, next Bitcoin difficulty adjustment using mempool API
 async function deadline() {
@@ -255,11 +265,13 @@ setInterval( async() => {
   const dailyMax = (await getMaxMinPriceOfDay()).max;
   
   // Updates bitcoinMax to track maximum BTC price in the current round
-  if (price > bitcoinMax) {
-    bitcoinMax = price;
-  }
-  if (dailyMax > bitcoinMax) {
-    bitcoinMax = dailyMax
+  if (price > bitcoinMax || dailyMax > bitcoinMax) {
+    bitcoinMax = Math.max(price, dailyMax);
+    try {
+      fs.writeFileSync(BITCOIN_FILE, JSON.stringify({bitcoinMax}, null, 2)); // Guardar con formato JSON
+    } catch (err) {
+      console.error('Failed to save the maximum Bitcoin price:', err);
+    }
   }
   
   // Triggers win event if deadline is over (difficulty adjustment of Bitcoin)
