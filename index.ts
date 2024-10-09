@@ -47,6 +47,7 @@ let bitcoinMax: number = 0;
 let isTest: boolean = false;
 let isWin: boolean = false;
 let isWon: boolean = false;
+let isPromote: boolean = true;
 
 // Restores prodillos from JSON file
 try {
@@ -244,6 +245,14 @@ bot.onText(/(?<=\s|^)(eth|solana|sol |bcash|bch |polkadot|dot |cardano|ada )\w*/
   bot.sendMessage(msg.chat.id, '🚨 ALERTA DU SHITCOINER 🚨');
 });
 
+bot.onText(/\/test/, (msg) => {
+  const test = msg.text?.split('/test ')[1];
+  if (test === 'promote') {
+    isPromote = true;
+    bot.sendMessage(msg.chat.id, '🎙 PROMOTE ON');
+  }
+});
+
 /*bot.onText(/\/test/, (msg) => {
   const test = msg.text?.split('/test ')[1];
   if (test === 'on') {
@@ -330,19 +339,20 @@ setInterval( async() => {
   }
 }, PRODILLO_TIME_INTERVAL);
 
-// Define timer to promote prodillo game with a misterious message
+/*/ Define timer to promote prodillo game with a misterious message
 (async function promoteProdillo() {
   for (const chatId in telegramChats) {
     await bot.sendMessage(chatId, `🟧 ${(await deadline()).winnerDeadline}`);
   }
-  if (isWon) {
+  if (isPromote) {
     for (const chatId in telegramChats) {
       await bot.sendMessage(chatId, `¡BIEVENIDOS AL JUEGO DEL PRODILLO!\n¿Como funciona? 👇\n\nAdivina el maximo precio de BTC de el ciclo, este terminara cuando sea el proximo ajuste de dificultad de Bitcoin.\n¿Que hay que hacer?\nSolo tienes que registrar tu prediccion con /prodillo <precio> y listo, ¡ya estas jugando!\n\nSe podran mandar predicciones hasta 420 bloques antes del proximo ajuste de dificultad de Bitcoin.\n\nUsa el comando /lista para ver todas las predicciones registradas hasta el momento y el precio maximo de BTC en el ciclo actual.\n\n¡Eso es todo!\n¡Gracias por jugar! 🫡`);
     }
+    isPromote = false
     return
   }
-  setTimeout(promoteProdillo, Math.random()*1000*60*210+1000*60); // 
-})();
+  setTimeout(promoteProdillo, 21*1000); // 
+})();*/
 
 // Stores user predictions of BTC price in a JSON file and replies a reminder with the deadline
 bot.onText(/\/prodillo/, async (msg) => {
