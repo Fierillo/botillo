@@ -375,7 +375,13 @@ bot.onText(/\/prodillo/, async (msg) => {
       const fileContent = await fs.promises.readFile(PRODILLO_FILE, 'utf-8');
       prodillos = JSON.parse(fileContent);
     } catch (error) {
-      console.error('Error leyendo prodillos.json:', error);
+      console.error('Error leyendo prodillo.json:', error);
+    }
+
+    // Check if the prediction already exists
+    const existingPredictions = Object.values(prodillos).map(p => p.predict);
+      if (existingPredictions.includes(predict)) {
+        return await bot.sendMessage(msg.chat.id, `Ese prodillo ya existe. ¡Elegi otro valor loko!`);
     }
     
     // Stores user prediction in a prodillo.json file
