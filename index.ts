@@ -58,7 +58,7 @@ try {
 
 // Restores max Bitcoin price of the current round from JSON file
 try {
-  let data = JSON.parse(fs.readFileSync('bitcoinMax.json', 'utf-8'));
+  let data = JSON.parse(fs.readFileSync(BITCOIN_FILE, 'utf-8'));
   bitcoinMax = data.bitcoinMax || 0; // Usa el valor del archivo o 0 si no está definido
 } catch (e) {
   console.warn('No se pudo leer el archivo de máximo precio de Bitcoin. Se iniciará uno nuevo.');
@@ -69,8 +69,8 @@ try {
 async function deadline() {
   const latestHeight = await axios.get('https://mempool.space/api/blocks/tip/height');
   return {
-    winnerDeadline: 2016 - latestHeight.data % 2016, // 2016 is the Bitcoin difficulty adjustment
-    prodilleableDeadline: (2016 - latestHeight.data % 2016) - 420, // prodillos can be submitted 420 blocks before the difficulty adjustment
+    winnerDeadline: 2015 - latestHeight.data % 2016, // 2016 is the Bitcoin difficulty adjustment
+    prodilleableDeadline: (2015 - latestHeight.data % 2016) - 420, // prodillos can be submitted 420 blocks before the difficulty adjustment
   }
 }
 
