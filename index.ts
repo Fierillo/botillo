@@ -393,6 +393,7 @@ bot.onText(/\/prodillo/, async (msg) => {
     
     // Sends a reminder with the deadline
     await bot.sendMessage(msg.chat.id, `Prodillo de ${user} registrado: $${predict}\n\n🟧⛏️ Tiempo restante para mandar prodillos: ${isProdilleabe? prodilleableDeadline : 0} bloques\n🏁 Tiempo restante para saber ganador: ${winnerDeadline} bloques`, {disable_web_page_preview: true});
+    console.log(`Registered prodillo of ${user} [${userId}]: ${predict}`);
   } else await bot.sendMessage(msg.chat.id, '¡Ingresaste cualquier cosa loko!\n\n/prodillo <numero>');
 });
 
