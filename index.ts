@@ -44,10 +44,12 @@ let discordChannels: { [key: string]: TextChannel } = {};
 let prodillos: Record<string, { user: string; predict: number }>;
 let isProdilleabe: boolean = false;
 let bitcoinMax: number = 0;
+let bitcoinMaxBlock: number = 0;
 let isTest: boolean = false;
 let isWin: boolean = false;
 let isWon: boolean = false;
 let isPromote: boolean = true;
+let trofeillos: Record<string, { name: string; trofeos: string; blockHeight: number }> = {};
 
 // Restores prodillos from JSON file
 try {
@@ -69,6 +71,7 @@ try {
 async function deadline() {
   const latestHeight = await axios.get('https://mempool.space/api/blocks/tip/height');
   return {
+    latestHeight: latestHeight.data,
     winnerDeadline: 2015 - latestHeight.data % 2016, // 2016 is the Bitcoin difficulty adjustment
     prodilleableDeadline: (2015 - latestHeight.data % 2016) - 420, // prodillos can be submitted 420 blocks before the difficulty adjustment
   }
@@ -279,14 +282,17 @@ setInterval( async() => {
   if (isWon && (await deadline()).winnerDeadline === 2000) {
     isWon = false
   }
+  
+  // Gets the current Bitcoin price and the daily Max price
   const price = await getBitcoinPrice();
   const dailyMax = (await getMaxMinPriceOfDay()).max;
   
-  // Updates bitcoinMax to track maximum BTC price in the current round
+  // Updates bitcoinMax to track maximum BTC price in the current round, also record it in a JSON file. Aditionally record the correspondent block height
   if (price > bitcoinMax || dailyMax > bitcoinMax) {
     bitcoinMax = Math.max(price, dailyMax);
+    bitcoinMaxBlock = (await deadline()).latestHeight;
     try {
-      fs.writeFileSync(BITCOIN_FILE, JSON.stringify({bitcoinMax}, null, 2)); // Guardar con formato JSON
+      fs.writeFileSync(BITCOIN_FILE, JSON.stringify({bitcoinMax, bitcoinMaxBlock}, null, 2));
     } catch (err) {
       console.error('Failed to save the maximum Bitcoin price:', err);
     }
@@ -294,33 +300,41 @@ setInterval( async() => {
   
   // Triggers win event if deadline is over (difficulty adjustment of Bitcoin)
   if (((await deadline()).winnerDeadline === 0 && !isWon) || isWin) {
+    
+    // Read prodillo.json file and store it in a local variable
     prodillos = JSON.parse(await fs.promises.readFile(PRODILLO_FILE, 'utf-8'));
+    
+    // Sort the prodillos by their difference from the current Max Bitcoin price of the round
     const prodillosSorted = Object.entries(prodillos).sort(([,a],[,b]) => 
       Math.abs(a.predict - bitcoinMax) - Math.abs(b.predict - bitcoinMax)
     );
+    
+    // Format the list of prodillos
     const formattedList = prodillosSorted.map(([userId, { user, predict }]) => {
       return `${user}: $${predict} (dif: ${(Math.abs(predict as unknown as number - bitcoinMax))})`}).join('\n');
 
-    console.log(prodillosSorted);
+    // Stores the winner in local variables
     const winnerId = prodillosSorted[0][0];
     const winnerName = prodillosSorted[0][1].user;
     
+    // Send a message to all Telegram chats
     for (const chatId in telegramChats) {
       await bot.sendMessage(chatId, `🏁 ¡LA RONDA A LLEGADO A SU FIN!\nMaximo de ฿ de esta ronda: $${bitcoinMax}\n------------------------------------------\n${formattedList}\n\nEl ganador es ${winnerName} 🏆`);
     }
 
-    let trofeillos: Record<string, { name: string; trofeos: string }> = {};
+    // Read trofeillos.json file and store it in a global variable
     try {
     trofeillos = JSON.parse(await fs.readFile('trofeillos.json', 'utf-8'));
     } catch (error) {
-    // If trofeillos doesn't exist, this will be an empty object
+    console.log('No se pudo leer el archivo de trofeillos.');
     }
 
     // Add the new trophy to winner
     if (!trofeillos[winnerId]) {
-      trofeillos[winnerId] = { name: winnerName, trofeos: trofeillo };
+      trofeillos[winnerId] = { name: winnerName, trofeos: trofeillo, blockHeight: bitcoinMaxBlock };
     } else {
       trofeillos[winnerId].trofeos += trofeillo; // Add a new trophy
+      trofeillos[winnerId].blockHeight += bitcoinMaxBlock; // With correspondent block height
     }
   
     // Save the new trophy status in a JSON file
@@ -328,12 +342,16 @@ setInterval( async() => {
 
     // Restart max BTC price for the nex round
     bitcoinMax = 0;
+    
     // Wipe bitcoin.json file
-    fs.writeFileSync(BITCOIN_FILE, JSON.stringify({bitcoinMax: 0}, null, 2));
+    fs.writeFileSync(BITCOIN_FILE, JSON.stringify({}, null, 2));
+    
     // Wipe prodillo.json file
     fs.writeFileSync(PRODILLO_FILE, JSON.stringify({}, null, 2));
+    
     // Write Hal Finney prediction as tribute
     fs.writeFileSync(PRODILLO_FILE, JSON.stringify({'0': {user: 'Hal Finney', predict: 10000000}}, null, 2));
+    
     // Prevents that win event is triggered again for a while
     isWon = true
   }
@@ -428,9 +446,6 @@ bot.onText(/\/listilla/, async (msg) => {
 // When user writes /trofeillos, sends a list of all winners of the game and the number of trophys of each one
 bot.onText(/\/trofeillos/, (msg) => {
   
-  // Define local variable to store the list of winners
-  let trofeillos: Record<string, { name: string; trofeos: string }> = {};
-  
   // Read trofeillos.json to get the list of winners
   try {
     trofeillos = JSON.parse(fs.readFileSync('trofeillos.json', 'utf-8'));
@@ -440,7 +455,7 @@ bot.onText(/\/trofeillos/, (msg) => {
 
   let mensaje = "";
   for (const [id, data] of Object.entries(trofeillos)) {
-    mensaje += `\n- ${data.name}: ${data.trofeos}`;
+    mensaje += `\n- ${data.name}: ${data.trofeos} [${data.blockHeight}]`;
   }
 
   bot.sendMessage(msg.chat.id, `🏆 SALON DE GANADORES 🏆\n-----------------------------------\n${mensaje || 'No hay ganadores aún.'}`);
