@@ -382,7 +382,7 @@ bot.onText(/\/prodillo/, async (msg) => {
     const existingPredictions = Object.values(prodillos).map(p => p.predict);
       if (existingPredictions.includes(predict)) {
         return await bot.sendMessage(msg.chat.id, `Ese prodillo ya existe. ¡Elegi otro valor loko!`);
-    }
+      }
     
     // Stores user prediction in a prodillo.json file
     prodillos[userId] = {
@@ -397,13 +397,26 @@ bot.onText(/\/prodillo/, async (msg) => {
 });
 
 // When user writes /lista, sends a list of all registered prodillos
-bot.onText(/\/lista/, async (msg) => {
+bot.onText(/\/listilla/, async (msg) => {
   try {
-    prodillos = JSON.parse(await fs.promises.readFile(PRODILLO_FILE, 'utf-8'));
-    const { winnerDeadline, prodilleableDeadline } = await deadline();
-    const formattedList = Object.entries(prodillos).map(([userId, { user, predict }]) => {
-      return `${user}: $${predict} (dif: ${(Math.abs(predict as number - bitcoinMax))})`}).join('\n');
     
+    // Read prodillo.json file and store it in a local variable
+    prodillos = JSON.parse(await fs.promises.readFile(PRODILLO_FILE, 'utf-8'));
+    
+    // Get the deadlines
+    const { winnerDeadline, prodilleableDeadline } = await deadline();
+    
+    // Sort the prodillos by their difference from the current Max Bitcoin price
+    const sortedProdillos = Object.entries(prodillos).map(([userId, { user, predict }]) => {
+      return {user, predict, diff: Math.abs(predict - bitcoinMax)};
+    }).sort((a, b) => a.diff - b.diff);
+
+    // Format the list of prodillos
+    const formattedList = sortedProdillos.map(({ user, predict, diff }) => 
+      `${user}: $${predict} (dif: ${diff.toFixed(2)})`
+    ).join('\n');
+    
+    // Send the list to current Telegram chat
     await bot.sendMessage(msg.chat.id, `🗒 LISTA DE PRODILLOS\nPrecio maximo de ฿ en esta ronda: $${bitcoinMax}\n------------------------------------------\n${formattedList}\n\n🟧⛏️ Tiempo restante para mandar prodillos: ${isProdilleabe? prodilleableDeadline : 0} bloques\n🏁 Tiempo restante para saber ganador: ${winnerDeadline} bloques`);
   } catch (error) {
     console.error('Error al leer o enviar la lista:', error);
