@@ -385,7 +385,7 @@ bot.onText(/\/prodillo/, async (msg) => {
   }
   const userId = msg.from?.id;
   const user = msg.from?.username;
-  const predict = Number(msg.text?.split('/prodillo ')[1]);
+  const predict = Math.round(Number(msg.text?.split('/prodillo ')[1]));
   
   if ((isProdilleabe || isTest) && userId && user && !isNaN(predict) && predict >= 0) {
 
