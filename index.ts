@@ -4,6 +4,7 @@ import { config } from "dotenv";
 const axios = require('axios');
 const schedule = require('node-schedule');
 import TelegramBot from 'node-telegram-bot-api';
+import { parse } from "path";
 const fs = require('fs');
 const path = require('path');
 
@@ -430,13 +431,14 @@ bot.onText(/\/listilla/, async (msg) => {
       return {user, predict, diff: Math.abs(predict - bitcoinMax)};
     }).sort((a, b) => a.diff - b.diff);
 
-    // Format the list of prodillos
-    const formattedList = sortedProdillos.map(({ user, predict, diff }) => 
-      `${user}: $${predict} (dif: ${diff.toFixed(2)})`
-    ).join('\n');
-    
-    // Send the list to current Telegram chat
-    await bot.sendMessage(msg.chat.id, `🗒 LISTA DE PRODILLOS\nPrecio maximo de ฿ en esta ronda: $${bitcoinMax}\n------------------------------------------\n${formattedList}\n\n🟧⛏️ Tiempo restante para mandar prodillos: ${isProdilleabe? prodilleableDeadline : 0} bloques\n🏁 Tiempo restante para saber ganador: ${winnerDeadline} bloques`);
+    let formattedList = `${('Usuario').padEnd(25, ' ')} | ${('Predicción').padEnd(10, ' ')}  | Diferencia\n`;
+    formattedList += '-----------------------------------------------------\n';
+
+    sortedProdillos.forEach(({ user, predict, diff }) => {
+      formattedList += `${user.padEnd(25, ' ')} | $${(predict.toString()).padStart(10, ' ')} | ${diff}\n`;
+    });
+
+    await bot.sendMessage(msg.chat.id, `<pre>🗒 LISTA DE PRODILLOS\nPrecio máximo de ฿ en esta ronda: $${bitcoinMax}\n\n-----------------------------------------------------\n${formattedList}\n\n🟧⛏️ Tiempo restante para mandar prodillos: ${isProdilleabe ? prodilleableDeadline : 0} bloques\n🏁 Tiempo restante para saber ganador: ${winnerDeadline} bloques</pre>`, { parse_mode: 'HTML' });
   } catch (error) {
     console.error('Error al leer o enviar la lista:', error);
     await bot.sendMessage(msg.chat.id, 'No se pudo obtener la lista de prodillos.');
@@ -458,5 +460,5 @@ bot.onText(/\/trofeillos/, (msg) => {
     mensaje += `\n- ${data.name}: ${data.trofeos} [${data.blockHeight}]`;
   }
 
-  bot.sendMessage(msg.chat.id, `🏆 SALON DE GANADORES 🏆\n-----------------------------------\n${mensaje || 'No hay ganadores aún.'}`);
+  bot.sendMessage(msg.chat.id, `<pre>🏆 SALON DE GANADORES 🏆\n-----------------------------------\n${mensaje || 'No hay ganadores aún.'}</pre>`, { parse_mode: 'HTML' });
 });
