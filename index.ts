@@ -259,14 +259,18 @@ bot.on('message', async (msg) => {
   }
 });
 
-// // Bot replies ME CHUPA LA PIJA LA OPINION DE LAS KUKAS when users write "peron*", "kuka*", "kirchner*", "zurdo*"
-// bot.onText(/(?<=\s|^)(peron|kuka|kirchner|zurdo)\w*/i, (msg) => {
-//   bot.sendMessage(msg.chat.id, 'ME CHUPA LA PIJA LA OPINION DE LAS KUKAS');
-// });
+// Bot replies ME CHUPA LA PIJA LA OPINION DE LAS KUKAS when users write "peron*", "kuka*", "kirchner*", "zurdo*"
+bot.onText(/(?<=\s|^)(peron|kuka|kirchner|zurdo)\w*/i, (msg) => {
+  if (Math.random() <= 0.21) {
+    bot.sendMessage(msg.chat.id, msg.chat.id === -1001778459295 ? 'NO ME INTERESA LA OPINION DE LAS KUKAS' : 'ME CHUPA LA PIJA LA OPINION DE LAS KUKAS');
+  }
+});
 
 // Bot replies to shitcoiners
 bot.onText(/(?<=\s|^)(eth|solana|sol |bcash|bch |polkadot|dot |cardano|ada )\w*/i, (msg) => {
-  bot.sendMessage(msg.chat.id, '🚨 ALERTA DU SHITCOINER 🚨');
+  if (Math.random() <= 0.21) {
+    bot.sendMessage(msg.chat.id, '🚨 ALERTA DU SHITCOINER 🚨');
+  }
 });
 
 bot.onText(/\/test/, (msg) => {
