@@ -37,15 +37,17 @@ const bot = new TelegramBot(TELEGRAM_BOT_TOKEN!, { polling: true });
 // Prodillo trophy
 const trofeillo = '🏆 ';
 
-// Define initial variables
+// Define global variables
 let lastReportedMax: number = 0;
 let lastReportedMin: number = Infinity;
 let telegramChats: { [key: number]: boolean } = {};
 let discordChannels: { [key: string]: TextChannel } = {};
 let prodillos: Record<string, { user: string; predict: number }>;
 let isProdilleabe: boolean = false;
+let bitcoin: Record<string, {bitcoinMax: number, bitcoinMaxBlock: number, lastReportedMax: number, lastReportedMin: number}>;
 let bitcoinMax: number = 0;
 let bitcoinMaxBlock: number = 0;
+
 let isTest: boolean = false;
 let isWin: boolean = false;
 let isWon: boolean = false;
@@ -59,14 +61,28 @@ try {
   console.warn('No se pudo leer el archivo de predicciones. Se iniciará uno nuevo.');
 }
 
-// Restores max Bitcoin price of the current round from JSON file
+// Restores Bitcoin prices from bitcoin.json file
 try {
-  let data = JSON.parse(fs.readFileSync(BITCOIN_FILE, 'utf-8'));
-  bitcoinMax = data.bitcoinMax || 0; // Usa el valor del archivo o 0 si no está definido
+  const data = JSON.parse(fs.readFileSync(BITCOIN_FILE, 'utf-8'));
+  bitcoinMax = data.bitcoinMax;
+  bitcoinMaxBlock = data.bitcoinMaxBlock;
+  lastReportedMax = data.lastReportedMax;
+  lastReportedMin = data.lastReportedMin;
 } catch (e) {
-  console.warn('No se pudo leer el archivo de máximo precio de Bitcoin. Se iniciará uno nuevo.');
+  console.warn('No se pudo leer el archivo de precios de Bitcoin. Se iniciará uno nuevo.');
 }
 
+// Updates Bitcoin prices to bitcoin.json file
+async function updateBitcoinFile(field: string | number, value: any) {
+  try {
+    let data = await fs.readFile(BITCOIN_FILE, 'utf-8');
+    data = JSON.parse(data);
+    data[field] = value;
+    await fs.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
+  } catch (e) {
+    console.error(`Error updating Bitcoin file for ${field}:`, e);
+  }
+}
 
 // Initialize starting deadline for Prodillo game, next Bitcoin difficulty adjustment using mempool API
 async function deadline() {
@@ -107,6 +123,7 @@ const trackBitcoinPrice = async () => {
     // If price is higher than reported max...
     if (max > lastReportedMax) {
       lastReportedMax = max;
+      await updateBitcoinFile('lastReportedMax', max);
       // Send to all Telegram chats...
       for (const chatId in telegramChats) {
         if (telegramChats[chatId]) {
@@ -122,6 +139,7 @@ const trackBitcoinPrice = async () => {
     // If price is lower than reported min...
     if (min < lastReportedMin) {
       lastReportedMin = min;
+      await updateBitcoinFile('lastReportedMin', min);
       // Send to all Telegram chats...
       for (const chatId in telegramChats) {
         if (telegramChats[chatId]) {
@@ -148,9 +166,11 @@ const trackBitcoinPrice = async () => {
 })();
 
 // Define cron job to reset daily highs and lows at midnight (UTC = 00:00)
-schedule.scheduleJob('0 21 * * *', () => { // 21:00 at local time (UTC-3) = 00:00 UTC
+schedule.scheduleJob('0 21 * * *', async () => { // 21:00 at local time (UTC-3) = 00:00 UTC
   lastReportedMax = 0;
   lastReportedMin = Infinity;
+  await updateBitcoinFile('lastReportedMax', lastReportedMax);
+  await updateBitcoinFile('lastReportedMin', lastReportedMin);
   for (const channelId in discordChannels) {
     discordChannels[channelId].send(`¡GN humanos!\n🔄 reiniciando máximos y mínimos diarios...`);
   }
