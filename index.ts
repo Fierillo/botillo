@@ -462,7 +462,16 @@ bot.onText(/\/listilla/, async (msg) => {
       formattedList += `${user.padEnd(25, ' ')} | $${(predict.toString()).padStart(10, ' ')} | ${diff}\n`;
     });
 
-    await bot.sendMessage(msg.chat.id, `<pre>🗒 LISTA DE PRODILLOS\nPrecio máximo de ฿ en esta ronda: $${bitcoinMax}\n\n-----------------------------------------------------\n${formattedList}\n\n🟧⛏️ Tiempo restante para mandar prodillos: ${isProdilleabe ? prodilleableDeadline : 0} bloques\n🏁 Tiempo restante para saber ganador: ${winnerDeadline} bloques</pre>`, { parse_mode: 'HTML' });
+    const prodilloTitle = 
+    `                                    
+ _____              _  _  _  _      
+|  _  | ___  ___  _| ||_|| || | ___ 
+|   __||  _|| . || . || || || || . |
+|__|   |_|  |___||___||_||_||_||___|
+                                    
+`
+
+    await bot.sendMessage(msg.chat.id, `<pre>${prodilloTitle}\nPrecio máximo de ฿ en esta ronda: $${bitcoinMax}\n\n-----------------------------------------------------\n${formattedList}\n\n🟧⛏️ Tiempo restante para mandar prodillos: ${isProdilleabe ? prodilleableDeadline : 0} bloques\n🏁 Tiempo restante para saber ganador: ${winnerDeadline} bloques</pre>`, { parse_mode: 'HTML' });
   } catch (error) {
     console.error('Error al leer o enviar la lista:', error);
     await bot.sendMessage(msg.chat.id, 'No se pudo obtener la lista de prodillos.');
