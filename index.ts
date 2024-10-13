@@ -44,10 +44,9 @@ let telegramChats: { [key: number]: boolean } = {};
 let discordChannels: { [key: string]: TextChannel } = {};
 let prodillos: Record<string, { user: string; predict: number }>;
 let isProdilleabe: boolean = false;
-let bitcoin: Record<string, {bitcoinMax: number, bitcoinMaxBlock: number, lastReportedMax: number, lastReportedMin: number}>;
+let bitcoinPrices: Array<{ bitcoinMax: number; bitcoinMaxBlock: number; lastReportedMax: number; lastReportedMin: number }> = [];
 let bitcoinMax: number = 0;
 let bitcoinMaxBlock: number = 0;
-
 let isTest: boolean = false;
 let isWin: boolean = false;
 let isWon: boolean = false;
@@ -63,25 +62,9 @@ try {
 
 // Restores Bitcoin prices from bitcoin.json file
 try {
-  const data = JSON.parse(fs.readFileSync(BITCOIN_FILE, 'utf-8'));
-  bitcoinMax = data.bitcoinMax;
-  bitcoinMaxBlock = data.bitcoinMaxBlock;
-  lastReportedMax = data.lastReportedMax;
-  lastReportedMin = data.lastReportedMin;
+  bitcoinPrices = JSON.parse(fs.readFileSync(BITCOIN_FILE, 'utf-8'));
 } catch (e) {
   console.warn('No se pudo leer el archivo de precios de Bitcoin. Se iniciará uno nuevo.');
-}
-
-// Updates Bitcoin prices to bitcoin.json file
-async function updateBitcoinFile(field: string | number, value: any) {
-  try {
-    let data = await fs.readFile(BITCOIN_FILE, 'utf-8');
-    data = JSON.parse(data);
-    data[field] = value;
-    await fs.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
-  } catch (e) {
-    console.error(`Error updating Bitcoin file for ${field}:`, e);
-  }
 }
 
 // Initialize starting deadline for Prodillo game, next Bitcoin difficulty adjustment using mempool API
@@ -123,13 +106,19 @@ const trackBitcoinPrice = async () => {
     // If price is higher than reported max...
     if (max > lastReportedMax) {
       lastReportedMax = max;
-      await updateBitcoinFile('lastReportedMax', max);
-      // Send to all Telegram chats...
+      
+      // Load bitcoin.json file and update lastReportedMax
+      const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf8'));
+      data.lastReportedMax = lastReportedMax;
+      await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
+      
+      // Then send to all Telegram chats...
       for (const chatId in telegramChats) {
         if (telegramChats[chatId]) {
           bot.sendMessage(Number(chatId), `nuevo máximo diario de ฿: $${lastReportedMax}`);
         }
       }
+      
       // and to all Discord channels
       for (const channelId in discordChannels) {
         await discordChannels[channelId].send(`nuevo máximo diario de ฿: $${lastReportedMax}`);
@@ -139,13 +128,19 @@ const trackBitcoinPrice = async () => {
     // If price is lower than reported min...
     if (min < lastReportedMin) {
       lastReportedMin = min;
-      await updateBitcoinFile('lastReportedMin', min);
-      // Send to all Telegram chats...
+
+      // Load bitcoin.json file and update lastReportedMin
+      const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf8'));
+      data.lastReportedMin = lastReportedMin;
+      await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
+      
+      // Then send to all Telegram chats...
       for (const chatId in telegramChats) {
         if (telegramChats[chatId]) {
           bot.sendMessage(Number(chatId), `🐻 nuevo mínimo diario de ฿: $${lastReportedMin}`);
         }
       }
+      
       // and to all Discord channels
       for (const channelId in discordChannels) {
         await discordChannels[channelId].send(`🐻 nuevo mínimo diario de ฿: $${lastReportedMin}`);
@@ -169,11 +164,19 @@ const trackBitcoinPrice = async () => {
 schedule.scheduleJob('0 21 * * *', async () => { // 21:00 at local time (UTC-3) = 00:00 UTC
   lastReportedMax = 0;
   lastReportedMin = Infinity;
-  await updateBitcoinFile('lastReportedMax', lastReportedMax);
-  await updateBitcoinFile('lastReportedMin', lastReportedMin);
+  
+  // Load bitcoin.json file and update lastReportedMax/Min
+  const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf8'));
+  data.lastReportedMax = lastReportedMax;
+  data.lastReportedMin = lastReportedMin;
+  await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
+  
+  // Then send reset message to all Discord channels...
   for (const channelId in discordChannels) {
     discordChannels[channelId].send(`¡GN humanos!\n🔄 reiniciando máximos y mínimos diarios...`);
   }
+  
+  // And to all Telegram chats...
   for (const chatId in telegramChats) {
       bot.sendMessage(chatId, `¡GN humanos!\n🔄 reiniciando máximos y mínimos diarios...`);
   }
