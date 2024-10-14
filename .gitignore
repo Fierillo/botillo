@@ -1,5 +1,7 @@
 .env
 node_modules/
 prodillo.json
+prodillo-backup.json
 bitcoin.json
 trofeillos.json
+trofeillos-backup.json
