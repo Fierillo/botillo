@@ -69,7 +69,6 @@ try {
 async function deadline() {
   try {
     const latestHeight = Number(await (await fetch('https://mempool.space/api/blocks/tip/height')).json());
-    console.log('deadline');
     return {
       latestHeight: latestHeight,
       winnerDeadline: 2015 - latestHeight % 2016, // 2016 is the Bitcoin difficulty adjustment
@@ -89,7 +88,6 @@ async function deadline() {
 const getBitcoinPrice = async (): Promise<number> => {
   try {  
     const data = await (await fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT')).json();
-    console.log('getBitcoinPrice');
     return parseInt(data.lastPrice);
   } catch (error) {
     console.error('Error al obtener el precio de Bitcoin:', error);
@@ -101,7 +99,6 @@ const getBitcoinPrice = async (): Promise<number> => {
 const getMaxMinPriceOfDay = async (): Promise<{ max: number, min: number, volume: number }> => {
   try {
     const response = await (await fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT')).json();
-    console.log('getMaxMinPriceOfDay');
     return {
       max: parseInt(response.highPrice),
       min: parseInt(response.lowPrice),
