@@ -103,9 +103,9 @@ const getMaxMinPriceOfDay = async (): Promise<{ max: number, min: number, volume
     const response = await (await fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT')).json();
     console.log('getMaxMinPriceOfDay');
     return {
-      max: parseInt(response.data.highPrice),
-      min: parseInt(response.data.lowPrice),
-      volume: parseInt(response.data.Volume),
+      max: parseInt(response.highPrice),
+      min: parseInt(response.lowPrice),
+      volume: parseInt(response.Volume),
     };
   } catch (error) {
     console.error('Error al obtener los máximos/mínimos diarios:', error);
