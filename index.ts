@@ -1,10 +1,8 @@
 // Dependecy imports
 import { TextChannel, Message } from "discord.js";
 import { config } from "dotenv";
-const axios = require('axios');
 const schedule = require('node-schedule');
 import TelegramBot from 'node-telegram-bot-api';
-import { parse } from "path";
 const fs = require('fs');
 const path = require('path');
 
@@ -69,27 +67,41 @@ try {
 
 // Initialize starting deadline for Prodillo game, next Bitcoin difficulty adjustment using mempool API
 async function deadline() {
-  const latestHeight = await axios.get('https://mempool.space/api/blocks/tip/height');
-  console.log('axios: deadline');
-  return {
-    latestHeight: latestHeight.data,
-    winnerDeadline: 2015 - latestHeight.data % 2016, // 2016 is the Bitcoin difficulty adjustment
-    prodilleableDeadline: (2015 - latestHeight.data % 2016) - 420, // prodillos can be submitted 420 blocks before the difficulty adjustment
-  }
+  try {
+    const latestHeight = Number(await (await fetch('https://mempool.space/api/blocks/tip/height')).json());
+    console.log('deadline');
+    return {
+      latestHeight: latestHeight,
+      winnerDeadline: 2015 - latestHeight % 2016, // 2016 is the Bitcoin difficulty adjustment
+      prodilleableDeadline: (2015 - latestHeight % 2016) - 420, // prodillos can be submitted 420 blocks before the difficulty adjustment
+    }
+  } catch (error) {
+    console.error('Error al obtener deadline:', error);
+    return {
+      latestHeight: 0,
+      winnerDeadline: 0,
+      prodilleableDeadline: 0,
+    }
+  };
 }
 
 // Define function that fetches the Bitcoin price using Binance API
 const getBitcoinPrice = async (): Promise<number> => {
-  const { data } = await axios.get('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT');
-  console.log('axios: getBitcoinPrice');
-  return parseInt(data.lastPrice);
+  try {  
+    const data = await (await fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT')).json();
+    console.log('getBitcoinPrice');
+    return parseInt(data.lastPrice);
+  } catch (error) {
+    console.error('Error al obtener el precio de Bitcoin:', error);
+    return 21;
+  }
 };
 
 // Define function that fetches the current max and min price of the day
 const getMaxMinPriceOfDay = async (): Promise<{ max: number, min: number, volume: number }> => {
   try {
-    const response = await axios.get('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT');
-    console.log('axios: getMaxMinPriceOfDay');
+    const response = await (await fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT')).json();
+    console.log('getMaxMinPriceOfDay');
     return {
       max: parseInt(response.data.highPrice),
       min: parseInt(response.data.lowPrice),
