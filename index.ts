@@ -78,9 +78,9 @@ async function deadline() {
   } catch (error) {
     console.error('Error al obtener deadline:', error);
     return {
-      latestHeight: 0,
-      winnerDeadline: 0,
-      prodilleableDeadline: 0,
+      latestHeight: Infinity,
+      winnerDeadline: Infinity,
+      prodilleableDeadline: Infinity,
     }
   };
 }
