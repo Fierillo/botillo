@@ -49,7 +49,7 @@ let isTest: boolean = false;
 let isWin: boolean = false;
 let isWon: boolean = false;
 let isPromote: boolean = true;
-let trofeillos: Record<string, { name: string; trofeos: string; blockHeight: number }> = {};
+let trofeillos: Record<string, { champion: string; trofeillo: string[]}> = {};
 
 // Restores prodillos from JSON file
 try {
@@ -311,7 +311,7 @@ bot.onText(/\/test/, (msg) => {
     isWin = true;
     bot.sendMessage(msg.chat.id, '🏆 WIN ON');
   } else {
-    bot.sendMessage(msg.chat.id, '¡Ingresaste cualquier cosa loko!\n\n/test on - Activa el modo de prueba\n/test off - Desactiva el modo de prueba');
+    bot.sendMessage(msg.chat.id, `¡Ingresaste cualquier cosa loko!\n\n/test on - Activa el modo de prueba\n/test off - Desactiva el modo de prueba'\n/test win - Activa el evento de victoria`);
   }
 });*/
 
@@ -334,8 +334,13 @@ setInterval( async() => {
   if (price > bitcoinMax || dailyMax > bitcoinMax) {
     bitcoinMax = Math.max(price, dailyMax);
     bitcoinMaxBlock = (await deadline()).latestHeight;
+    
+    // Load bitcoin.json file and update bitcoinMax/bitcoinMaxBlock
     try {
-      fs.writeFileSync(BITCOIN_FILE, JSON.stringify({bitcoinMax, bitcoinMaxBlock}, null, 2));
+    const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf8'));
+      data.bitcoinMax = bitcoinMax;
+      data.bitcoinMaxBlock = bitcoinMaxBlock;
+      await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
     } catch (err) {
       console.error('Failed to save the maximum Bitcoin price:', err);
     }
@@ -362,22 +367,24 @@ setInterval( async() => {
     
     // Send a message to all Telegram chats
     for (const chatId in telegramChats) {
-      await bot.sendMessage(chatId, `🏁 ¡LA RONDA A LLEGADO A SU FIN!\nMaximo de ฿ de esta ronda: $${bitcoinMax}\n------------------------------------------\n${formattedList}\n\nEl ganador es ${winnerName} 🏆`);
+      await bot.sendMessage(636054907, `🏁 ¡LA RONDA A LLEGADO A SU FIN!\nMaximo de ฿ de esta ronda: $${bitcoinMax}\n------------------------------------------\n${formattedList}\n\nEl ganador es ${winnerName} 🏆`);
     }
 
     // Read trofeillos.json file and store it in a global variable
     try {
-    trofeillos = JSON.parse(await fs.readFile('trofeillos.json', 'utf-8'));
+    trofeillos = JSON.parse(fs.readFileSync('trofeillos.json', 'utf-8'));
     } catch (error) {
     console.log('No se pudo leer el archivo de trofeillos.');
     }
 
     // Add the new trophy to winner
     if (!trofeillos[winnerId]) {
-      trofeillos[winnerId] = { name: winnerName, trofeos: trofeillo, blockHeight: bitcoinMaxBlock };
+      trofeillos[winnerId] = { 
+      champion: winnerName, 
+      trofeillo: [` ${trofeillo}[${bitcoinMaxBlock}]`],
+      };
     } else {
-      trofeillos[winnerId].trofeos += trofeillo; // Add a new trophy
-      trofeillos[winnerId].blockHeight += bitcoinMaxBlock; // With correspondent block height
+      trofeillos[winnerId].trofeillo.push(` ${trofeillo}[${bitcoinMaxBlock}]`);
     }
   
     // Save the new trophy status in a JSON file
@@ -515,7 +522,7 @@ bot.onText(/\/trofeillos/, (msg) => {
 
   let mensaje = "";
   for (const [id, data] of Object.entries(trofeillos)) {
-    mensaje += `\n- ${data.name}: ${data.trofeos} [${data.blockHeight}]`;
+    mensaje += `\n- ${data.champion}: ${data.trofeillo}`;
   }
 
   bot.sendMessage(msg.chat.id, `<pre>${trofeillosTitle}\n------------------------------------------------------------------------------\n${mensaje || 'No hay ganadores aún.'}</pre>`, { parse_mode: 'HTML' });
