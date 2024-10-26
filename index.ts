@@ -49,6 +49,7 @@ let isTest: boolean = false;
 let isWin: boolean = false;
 let isWon: boolean = false;
 let isPromote: boolean = true;
+let winnerName: string = '';
 let trofeillos: Record<string, { champion: string; trofeillo: string[]}> = {};
 
 // Restores prodillos from JSON file
@@ -360,7 +361,7 @@ setInterval( async() => {
 
     // Stores the winner in local variables
     const winnerId = prodillosSorted[0][0];
-    const winnerName = prodillosSorted[0][1].user;
+    winnerName = prodillosSorted[0][1].user;
     
     // Send a message to all Telegram chats
     for (const chatId in telegramChats) {
@@ -521,5 +522,7 @@ bot.onText(/\/trofeillos/, (msg) => {
   }
 
   bot.sendMessage(msg.chat.id, `<pre><b>SALA DE TROFEILLOS:</b>
+    \n Ultimo campeón: ${winnerName}
+    \n Campeón: 🏆 [nro. de bloque]
     \n------------------------------------------------------------------------------\n${mensaje || 'No hay ganadores aún.'}</pre>`, { parse_mode: 'HTML' });
 });
