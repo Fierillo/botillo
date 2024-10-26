@@ -521,8 +521,6 @@ bot.onText(/\/trofeillos/, (msg) => {
     mensaje += `\n- ${data.champion}: ${data.trofeillo}`;
   }
 
-  bot.sendMessage(msg.chat.id, `<pre><b>SALA DE TROFEILLOS:</b>
-    \n Ultimo campeón: ${winnerName}
-    \n Campeón: 🏆 [nro. de bloque]
-    \n------------------------------------------------------------------------------\n${mensaje || 'No hay ganadores aún.'}</pre>`, { parse_mode: 'HTML' });
+  bot.sendMessage(msg.chat.id, `<pre><b>SALA DE TROFEILLOS:</b>\nUltimo campeón: ${winnerName}\nCampeón: 🏆 [nro. de bloque]
+\n------------------------------------------------------------------------------\n${mensaje || 'No hay ganadores aún.'}</pre>`, { parse_mode: 'HTML' });
 });
