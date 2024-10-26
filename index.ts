@@ -320,7 +320,7 @@ setInterval( async() => {
   isProdilleabe = (await deadline()).prodilleableDeadline > 0;
   
   // Check if winner has been announced and some blocks passed
-  if (isWon && (await deadline()).winnerDeadline === 2000) {
+  if (isWon && (await deadline()).winnerDeadline < 2010) {
     isWon = false
   }
   
