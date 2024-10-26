@@ -289,13 +289,13 @@ bot.onText(/(?<=\s|^)(eth|solana|sol |bcash|bch |polkadot|dot |cardano|ada )\w*/
   }
 });
 
-bot.onText(/\/test/, (msg) => {
+/*bot.onText(/\/test/, (msg) => {
   const test = msg.text?.split('/test ')[1];
   if (test === 'promote') {
     isPromote = true;
     bot.sendMessage(msg.chat.id, '🎙 PROMOTE ON');
   }
-});
+});*/
 
 /*bot.onText(/\/test/, (msg) => {
   const test = msg.text?.split('/test ')[1];
