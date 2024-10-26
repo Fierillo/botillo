@@ -88,7 +88,8 @@ async function deadline() {
 // Define function that fetches the Bitcoin price using Binance API
 const getBitcoinPrice = async (): Promise<number> => {
   try {  
-    const data = await (await fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT')).json();
+    const response = await fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT');
+    const data = await response.json() as { lastPrice: string };
     return parseInt(data.lastPrice);
   } catch (error) {
     console.error('Error al obtener el precio de Bitcoin:', error);
@@ -99,11 +100,12 @@ const getBitcoinPrice = async (): Promise<number> => {
 // Define function that fetches the current max and min price of the day
 const getMaxMinPriceOfDay = async (): Promise<{ max: number, min: number, volume: number }> => {
   try {
-    const response = await (await fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT')).json();
+    const response = await fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT');
+    const data = await response.json() as { highPrice: string, lowPrice: string, volume: string };
     return {
-      max: parseInt(response.highPrice),
-      min: parseInt(response.lowPrice),
-      volume: parseInt(response.Volume),
+      max: parseInt(data.highPrice),
+      min: parseInt(data.lowPrice),
+      volume: parseInt(data.volume),
     };
   } catch (error) {
     console.error('Error al obtener los máximos/mínimos diarios:', error);
@@ -521,6 +523,6 @@ bot.onText(/\/trofeillos/, (msg) => {
     mensaje += `\n- ${data.champion}: ${data.trofeillo}`;
   }
 
-  bot.sendMessage(msg.chat.id, `<pre><b>SALA DE TROFEILLOS:</b>\nUltimo campeón: ${winnerName}\nCampeón: 🏆 [nro. de bloque]
+  bot.sendMessage(msg.chat.id, `<pre><b>S A L A  D E  T R O F E I L L O S</b>\nUltimo campeón: ${winnerName}\nCampeón: 🏆 [nro. de bloque]
 \n------------------------------------------------------------------------------\n${mensaje || 'No hay ganadores aún.'}</pre>`, { parse_mode: 'HTML' });
 });
