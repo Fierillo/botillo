@@ -381,10 +381,10 @@ setInterval( async() => {
     if (!trofeillos[winnerId]) {
       trofeillos[winnerId] = { 
       champion: winnerName, 
-      trofeillo: [` ${trofeillo}[${bitcoinMaxBlock}]`],
+      trofeillo: [`${trofeillo}[${bitcoinMaxBlock}]`],
       };
     } else {
-      trofeillos[winnerId].trofeillo.push(` ${trofeillo}[${bitcoinMaxBlock}]`);
+      trofeillos[winnerId].trofeillo.push(`${trofeillo}[${bitcoinMaxBlock}]`);
     }
   
     // Save the new trophy status in a JSON file
@@ -523,5 +523,5 @@ bot.onText(/\/trofeillos/, (msg) => {
     mensaje += `\n- ${data.champion}: ${data.trofeillo}`;
   }
 
-  bot.sendMessage(msg.chat.id, `<pre><b>S A L A  D E  T R O F E I L L O S</b>\n\nUltimo campeón: ${winnerName}\nCampeón: 🏆 [nro. de bloque]\n------------------------------------------------------------------------------\n${mensaje || 'No hay ganadores aún.'}</pre>`, { parse_mode: 'HTML' });
+  bot.sendMessage(msg.chat.id, `<pre><b>S A L A  D E  T R O F E I L L O S</b>\n\nUltimo campeón: ${winnerName}\nCampeón: 🏆 [nro. de bloque]\n------------------------------------------------------------------------------${mensaje || 'No hay ganadores aún.'}</pre>`, { parse_mode: 'HTML' });
 });
