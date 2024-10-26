@@ -364,7 +364,7 @@ setInterval( async() => {
     
     // Send a message to all Telegram chats
     for (const chatId in telegramChats) {
-      await bot.sendMessage(636054907, `🏁 ¡LA RONDA A LLEGADO A SU FIN!\nMaximo de ฿ de esta ronda: $${bitcoinMax}\n------------------------------------------\n${formattedList}\n\nEl ganador es ${winnerName} 🏆`);
+      await bot.sendMessage(chatId, `🏁 ¡LA RONDA A LLEGADO A SU FIN!\nMaximo de ฿ de esta ronda: $${bitcoinMax}\n------------------------------------------\n${formattedList}\n\nEl ganador es ${winnerName} 🏆`);
     }
 
     // Read trofeillos.json file and store it in a global variable
