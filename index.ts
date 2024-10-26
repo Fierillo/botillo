@@ -490,7 +490,7 @@ bot.onText(/\/listilla/, async (msg) => {
 |   __||  _|| . || . || || || || . |
 |__|   |_|  |___||___||_||_||_||___|`
 
-    await bot.sendMessage(msg.chat.id, `<pre>${prodilloTitle}\n\nPrecio máximo de ฿ en esta ronda: $${bitcoinMax}\n\n-----------------------------------------------------\n${formattedList}\n\n🟧⛏️ Tiempo restante para mandar prodillos: ${isProdilleabe ? prodilleableDeadline : 0} bloques\n🏁 Tiempo restante para saber ganador: ${winnerDeadline} bloques</pre>`, { parse_mode: 'HTML' });
+    await bot.sendMessage(msg.chat.id, `<pre><b>LISTA DE PRODILLOS:</b>\nPrecio máximo de ฿ en esta ronda: $${bitcoinMax}\n-----------------------------------------------------\n${formattedList}\n\n🟧⛏️ Tiempo restante para mandar prodillos: ${isProdilleabe ? prodilleableDeadline : 0} bloques\n🏁 Tiempo restante para saber ganador: ${winnerDeadline} bloques</pre>`, { parse_mode: 'HTML' });
   } catch (error) {
     console.error('Error al leer o enviar la lista:', error);
     await bot.sendMessage(msg.chat.id, 'No se pudo obtener la lista de prodillos.');
@@ -520,5 +520,6 @@ bot.onText(/\/trofeillos/, (msg) => {
     mensaje += `\n- ${data.champion}: ${data.trofeillo}`;
   }
 
-  bot.sendMessage(msg.chat.id, `<pre>${trofeillosTitle}\n------------------------------------------------------------------------------\n${mensaje || 'No hay ganadores aún.'}</pre>`, { parse_mode: 'HTML' });
+  bot.sendMessage(msg.chat.id, `<pre><b>SALA DE TROFEILLOS:</b>
+    \n------------------------------------------------------------------------------\n${mensaje || 'No hay ganadores aún.'}</pre>`, { parse_mode: 'HTML' });
 });
