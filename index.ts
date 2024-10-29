@@ -142,18 +142,18 @@ const trackBitcoinPrice = async () => {
         for (const channelId in discordChannels) {
           await discordChannels[channelId].send(`NUEVO ATH DE ฿: $${bitcoinATH}`);
         }
-      }
-      
-      // Then send to all Telegram chats...
-      for (const chatId in telegramChats) {
-        if (telegramChats[chatId]) {
-          bot.sendMessage(Number(chatId), `nuevo máximo diario de ฿: $${lastReportedMax}`);
+      } else {
+        // OR send daily high to all Telegram chats...
+        for (const chatId in telegramChats) {
+          if (telegramChats[chatId]) {
+            bot.sendMessage(Number(chatId), `nuevo máximo diario de ฿: $${lastReportedMax}`);
+          }
         }
-      }
-      
-      // and to all Discord channels
-      for (const channelId in discordChannels) {
-        await discordChannels[channelId].send(`nuevo máximo diario de ฿: $${lastReportedMax}`);
+        
+        // and to all Discord channels
+        for (const channelId in discordChannels) {
+          await discordChannels[channelId].send(`nuevo máximo diario de ฿: $${lastReportedMax}`);
+        }
       }
     }
 
@@ -216,6 +216,7 @@ schedule.scheduleJob('0 21 * * *', async () => { // 21:00 at local time (UTC-3) 
 
 // Detects automatically the Discord server where the bot is, detects the first text-based channel, store it and send a message to it
 client.on('ready', () => {
+  console.log('Botillo v3.23.1')
   console.log(`${client.user?.tag} listo en Discord!`);
   client.guilds.cache.forEach((guild: { channels: { cache: any[]; }; name: any; }) => {
     guild.channels.cache.forEach(async (channel) => {
