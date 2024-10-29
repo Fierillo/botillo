@@ -42,9 +42,10 @@ let telegramChats: { [key: number]: boolean } = {};
 let discordChannels: { [key: string]: TextChannel } = {};
 let prodillos: Record<string, { user: string; predict: number }>;
 let isProdilleabe: boolean = false;
-let bitcoinPrices: Array<{ bitcoinMax: number; bitcoinMaxBlock: number; lastReportedMax: number; lastReportedMin: number }> = [];
+let bitcoinPrices: Array<{ bitcoinMax: number; bitcoinMaxBlock: number; lastReportedMax: number; lastReportedMin: number; bitcoinATH: number }> = [];
 let bitcoinMax: number = 0;
 let bitcoinMaxBlock: number = 0;
+let bitcoinATH: number = 73757;
 let isTest: boolean = false;
 let isWin: boolean = false;
 let isWon: boolean = false;
@@ -126,6 +127,22 @@ const trackBitcoinPrice = async () => {
       const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf8'));
       data.lastReportedMax = lastReportedMax;
       await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
+      
+      // If price is higher than ATH, report it and update ATH record
+      if (max > bitcoinATH) {
+        data.bitcoinATH = lastReportedMax
+        bitcoinATH = lastReportedMax
+        await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
+        console.log(`BITCOIN ATH: ${bitcoinATH}`)
+        for (const chatId in telegramChats) {
+          if (telegramChats[chatId]) {
+            bot.sendMessage(Number(chatId), `NUEVO ATH DE ฿: $${bitcoinATH}`);
+          }
+        }
+        for (const channelId in discordChannels) {
+          await discordChannels[channelId].send(`NUEVO ATH DE ฿: $${bitcoinATH}`);
+        }
+      }
       
       // Then send to all Telegram chats...
       for (const chatId in telegramChats) {
