@@ -460,7 +460,7 @@ bot.onText(/\/prodillo/, async (msg) => {
   const user = msg.from?.username;
   const predict = Math.round(Number(msg.text?.split('/prodillo ')[1]));
   
-  if ((isProdilleabe || isTest) && userId && user && !isNaN(predict) && predict >= 0) {
+  if ((isProdilleabe || isTest) && userId && user && !isNaN(predict) && predict >= 0 && isFinite(predict)) {
 
     // try to read prodillo.json file
     try {
