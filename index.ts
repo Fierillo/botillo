@@ -79,7 +79,7 @@ async function deadline() {
       prodilleableDeadline: (2015 - latestHeight % 2016) - 420, // prodillos can be submitted 420 blocks before the difficulty adjustment
     }
   } catch (error) {
-    console.error('Error al obtener deadline:', error);
+    console.error('Error al obtener deadline');
     return {
       latestHeight: Infinity,
       winnerDeadline: Infinity,
