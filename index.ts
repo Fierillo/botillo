@@ -32,7 +32,13 @@ const PRODILLO_TIME_INTERVAL = 1000*21;
 client.login(process.env.DISCORD_TOKEN_ORIGINAL!);
 // Telegram bot token
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!;
-const bot = new TelegramBot(TELEGRAM_BOT_TOKEN!, { polling: true });
+const bot = new TelegramBot(TELEGRAM_BOT_TOKEN!, { 
+  polling: {
+    interval: 2100, // polling interval in ms
+    autoStart: true,
+  }
+});
+
 // Prodillo trophy
 const trofeillo = '🏆 ';
 
