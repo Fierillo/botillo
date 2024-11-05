@@ -27,6 +27,8 @@ const BITCOIN_FILE = path.join(__dirname, 'bitcoin.json');
 const TROFEILLOS_FILE = path.join(__dirname, 'trofeillos.json');
 // Set time interval for automatic bot updates
 const TIME_INTERVAL = 1000*210;
+// Set time interval for Bitcoin price tracking
+const PRICE_TIME_INTERVAL = 1000*2.1;
 // Set time interval for prodillo game
 const PRODILLO_TIME_INTERVAL = 1000*21;
 // Discord bot token
@@ -124,10 +126,10 @@ const getMaxMinPriceOfDay = async (): Promise<{ max: number, min: number, volume
 };
 
 // Define function that tracks the Bitcoin price at regular intervals and report the max and min only if values surpass old reported values
-const trackBitcoinPrice = async () => {
-  setInterval(async () => {
-    const { max, min } = await getMaxMinPriceOfDay();
-    
+async function trackBitcoinPrice() {
+  while (true) {
+    try {
+      const { min, max } = await getMaxMinPriceOfDay();
     // If price is higher than reported max...
     if (max > lastReportedMax) {
       lastReportedMax = max;
@@ -187,7 +189,11 @@ const trackBitcoinPrice = async () => {
         await discordChannels[channelId].send(`🐻 nuevo mínimo diario de ฿: $${lastReportedMin}`);
       }
     }
-  }, TIME_INTERVAL);
+    } catch (error) {
+      console.error('Error en el seguimiento de precio de Bitcoin:', error);
+    }
+    await new Promise(resolve => setTimeout(resolve, TIME_INTERVAL));
+  }
 };
 
 // Sends SE VIENE message at random intervals to all channels and chats where bot is
@@ -343,7 +349,8 @@ bot.onText(/(?<=\s|^)(eth|solana|sol |bcash|bch |polkadot|dot |cardano|ada )\w*/
 });*/
 
 // Defines interval that checks deadlines and enable/disable prodillos. When deadline is over, sends a message to all Telegram chats to let them know the winner
-setInterval( async() => {
+(async function prodilloInterval() {
+  while (true) {
   
   // Check if deadline for prodillos is over
   isProdilleabe = (await deadline()).prodilleableDeadline > 0;
@@ -432,7 +439,9 @@ setInterval( async() => {
     // Prevents that win event is triggered again for a while
     isWon = true
   }
-}, PRODILLO_TIME_INTERVAL);
+    await new Promise(resolve => setTimeout(resolve, PRODILLO_TIME_INTERVAL));
+  }
+})();
 
 /*/ Define timer to promote prodillo game with a misterious message
 (async function promoteProdillo() {
