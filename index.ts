@@ -352,19 +352,22 @@ bot.onText(/(?<=\s|^)(eth|solana|sol |bcash|bch |polkadot|dot |cardano|ada )\w*/
 // Defines interval that checks deadlines and enable/disable prodillos. When deadline is over, sends a message to all Telegram chats to let them know the winner
 (async function prodilloInterval() {
   while (true) {
+
+    // Calls deadline function and stores in local variables
+    const { winnerDeadline, prodilleableDeadline, latestHeight } = await deadline();
   
     // Check if deadline for prodillos is over
-    isProdilleabe = (await deadline()).prodilleableDeadline > 0;
+    isProdilleabe = (prodilleableDeadline > 0);
     
     // Check if winner has been announced and some blocks passed
-    if (isWon && (await deadline()).winnerDeadline < 2010) {
+    if (isWon && (winnerDeadline < 2010)) {
       isWon = false
     }
     
     // Updates bitcoinMax to track maximum BTC price in the current round, also record it in a JSON file. Aditionally record the correspondent block height
     if (Math.max(...bitcoinPrice) > bitcoinMax) {
       bitcoinMax = Math.max(...bitcoinPrice);
-      bitcoinMaxBlock = (await deadline()).latestHeight;
+      bitcoinMaxBlock = latestHeight;
       
       // Load bitcoin.json file and update bitcoinMax/bitcoinMaxBlock
       try {
@@ -378,7 +381,7 @@ bot.onText(/(?<=\s|^)(eth|solana|sol |bcash|bch |polkadot|dot |cardano|ada )\w*/
     }
     
     // Triggers win event if deadline is over (difficulty adjustment of Bitcoin)
-    if (((await deadline()).winnerDeadline === 0 && !isWon) || isWin) {
+    if (((winnerDeadline === 0) && !isWon) || isWin) {
       
       // Read prodillo.json file and store it in a local variable
       prodillos = JSON.parse(await fs.promises.readFile(PRODILLO_FILE, 'utf-8'));
