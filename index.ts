@@ -128,7 +128,7 @@ const getBitcoinPrice = async (): Promise<number> => {
     }
     await new Promise(resolve => setTimeout(resolve, PRICE_TIME_INTERVAL));
   }
-})
+})();
 
 // Define function that tracks the Bitcoin price at regular intervals and report the max and min only if values surpass old reported values
 async function trackBitcoinPrice() {
