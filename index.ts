@@ -62,6 +62,7 @@ let isWon: boolean = false;
 let isPromote: boolean = true;
 let winnerName: string = '';
 let trofeillos: Record<string, { champion: string; trofeillo: string[]}> = {};
+let lastPrice: number = 21;
 let lastDeadline = {
   latestHeight: Infinity,
   winnerDeadline: Infinity,
@@ -108,10 +109,11 @@ async function deadline() {
 const getBitcoinPrice = async (): Promise<number> => {
   try {  
     const { data } = await axios.get<{ lastPrice: string }>('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT');
-    return parseInt(data.lastPrice);
+    lastPrice = parseInt(data.lastPrice);
+    return lastPrice;
   } catch (error) {
     console.error('Error al obtener el precio de Bitcoin:', error);
-    return 21;
+    return lastPrice;
   }
 };
 
@@ -124,7 +126,7 @@ const getBitcoinPrice = async (): Promise<number> => {
     } catch (error) {
       console.error('Error al actualizar el precio de Bitcoin');
     }
-    await new Promise(resolve => setTimeout(resolve, PRICE_TIME_INTERVAL)); 
+    await new Promise(resolve => setTimeout(resolve, PRICE_TIME_INTERVAL));
   }
 })
 
