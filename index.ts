@@ -52,7 +52,7 @@ let telegramChats: { [key: number]: boolean } = {};
 let discordChannels: { [key: string]: TextChannel } = {};
 let prodillos: Record<string, { user: string; predict: number }>;
 let isProdilleabe: boolean = false;
-let bitcoinPrices: Array<{ bitcoinMax: number; bitcoinMaxBlock: number; lastReportedMax: number; lastReportedMin: number; bitcoinATH: number }> = [];
+let bitcoinPrice: number[] = [];
 let bitcoinMax: number = 0;
 let bitcoinMaxBlock: number = 0;
 let bitcoinATH: number = 73757;
@@ -77,7 +77,12 @@ try {
 
 // Restores Bitcoin prices from bitcoin.json file
 try {
-  bitcoinPrices = JSON.parse(fs.readFileSync(BITCOIN_FILE, 'utf-8'));
+  const data = JSON.parse(fs.readFileSync(BITCOIN_FILE, 'utf-8'));
+  lastReportedMax = data.lastReportedMax;
+  lastReportedMin = data.lastReportedMin;
+  bitcoinMax = data.bitcoinMax;
+  bitcoinATH = data.bitcoinATH;
+  bitcoinMaxBlock = data.bitcoinMaxBlock;
 } catch (e) {
   console.warn('No se pudo leer el archivo de precios de Bitcoin. Se iniciará uno nuevo.');
 }
@@ -110,40 +115,38 @@ const getBitcoinPrice = async (): Promise<number> => {
   }
 };
 
-// Define function that fetches the current max and min price of the day
-const getMaxMinPriceOfDay = async (): Promise<{ max: number, min: number, volume: number }> => {
+// Set interval that records the Bitcoin price in a local list
+(async function recordBitcoinPrice() {
+  while (true) {
   try {
-    const { data } = await axios.get<{ highPrice: string, lowPrice: string, volume: string}>('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT');
-    return {
-      max: parseInt(data.highPrice),
-      min: parseInt(data.lowPrice),
-      volume: parseInt(data.volume),
-    };
+      const price = await getBitcoinPrice();
+      bitcoinPrice.push(price);
   } catch (error) {
-    console.error('Error al obtener los máximos/mínimos diarios:', error);
-    return { max: 0, min: Infinity, volume: 0 };
+      console.error('Error al actualizar el precio de Bitcoin');
+    }
+    await new Promise(resolve => setTimeout(resolve, PRICE_TIME_INTERVAL)); 
   }
-};
+})
 
 // Define function that tracks the Bitcoin price at regular intervals and report the max and min only if values surpass old reported values
 async function trackBitcoinPrice() {
   while (true) {
     try {
-      const { min, max } = await getMaxMinPriceOfDay();
+
     // If price is higher than reported max...
-    if (max > lastReportedMax) {
-      lastReportedMax = max;
+      if (Math.max(...bitcoinPrice) > lastReportedMax) {
+        lastReportedMax = Math.max(...bitcoinPrice);
       
       // Load bitcoin.json file and update lastReportedMax
-      const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf8'));
+        const data = JSON.parse(await fs.promise.readFile(BITCOIN_FILE, 'utf-8'));
       data.lastReportedMax = lastReportedMax;
-      await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
+        await fs.promise.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
       
       // If price is higher than ATH, report it and update ATH record
-      if (max > bitcoinATH) {
+        if (lastReportedMax > bitcoinATH) {
         data.bitcoinATH = lastReportedMax
         bitcoinATH = lastReportedMax
-        await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
+          await fs.promise.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
         console.log(`BITCOIN ATH: ${bitcoinATH}`)
         for (const chatId in telegramChats) {
           if (telegramChats[chatId]) {
@@ -169,8 +172,8 @@ async function trackBitcoinPrice() {
     }
 
     // If price is lower than reported min...
-    if (min < lastReportedMin) {
-      lastReportedMin = min;
+      if (Math.min(...bitcoinPrice) < lastReportedMin) {
+        lastReportedMin = Math.min(...bitcoinPrice);
 
       // Load bitcoin.json file and update lastReportedMin
       const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf8'));
@@ -192,6 +195,7 @@ async function trackBitcoinPrice() {
     } catch (error) {
       console.error('Error en el seguimiento de precio de Bitcoin:', error);
     }
+    bitcoinPrice = [];
     await new Promise(resolve => setTimeout(resolve, TIME_INTERVAL));
   }
 };
@@ -238,8 +242,7 @@ client.on('ready', () => {
       if (channel.isTextBased() && channel instanceof TextChannel) {
         discordChannels[channel.id] = channel;
         console.log(`Discord channel: ${guild.name} [${channel.id}]`);
-        const { max, min } = await getMaxMinPriceOfDay();
-        channel.send(`¡Hola mundillo!\nmáximo diario de ฿: $${max}\n🐻 mínimo diario de ฿: $${min}`);
+        channel.send(`¡Hola mundillo!\nmáximo diario de ฿: $${lastReportedMax}\n🐻 mínimo diario de ฿: $${lastReportedMin}`);
       }
     });
   });
@@ -254,8 +257,7 @@ client.on('messageCreate', async (message: { content: string; channel: TextChann
     const price = await getBitcoinPrice();
     (message.channel as TextChannel).send(`precio de ฿: $${price}`);
   } else if (message.content === '/hilo') {
-    const { max, min } = await getMaxMinPriceOfDay();
-    (message.channel as TextChannel).send(`máximo diario de ฿: $${max}\n🐻 mínimo diario de ฿: $${min}`);
+    (message.channel as TextChannel).send(`máximo diario de ฿: $${lastReportedMax}\n🐻 mínimo diario de ฿: $${lastReportedMin}`);
 }});
 
 // Bot says GM every day at 8am (UTC-3)
@@ -287,8 +289,7 @@ bot.onText(/\/precio/, async (msg) => {
 
 // Send High and Low prices when user writes /hilo
 bot.onText(/\/hilo/, async (msg) => {
-  const { max, min } = await getMaxMinPriceOfDay();
-  bot.sendMessage(msg.chat.id, `máximo diario de ฿: $${max}\n🐻 mínimo diario de ฿: $${min}`);
+  bot.sendMessage(msg.chat.id, `máximo diario de ฿: $${lastReportedMax}\n🐻 mínimo diario de ฿: $${lastReportedMin}`);
 });
 
 // Welcome message constant
@@ -360,13 +361,9 @@ bot.onText(/(?<=\s|^)(eth|solana|sol |bcash|bch |polkadot|dot |cardano|ada )\w*/
     isWon = false
   }
   
-  // Gets the current Bitcoin price and the daily Max price
-  const price = await getBitcoinPrice();
-  const dailyMax = (await getMaxMinPriceOfDay()).max;
-  
   // Updates bitcoinMax to track maximum BTC price in the current round, also record it in a JSON file. Aditionally record the correspondent block height
-  if (price > bitcoinMax || dailyMax > bitcoinMax) {
-    bitcoinMax = Math.max(price, dailyMax);
+    if (Math.max(...bitcoinPrice) > bitcoinMax) {
+      bitcoinMax = Math.max(...bitcoinPrice);
     bitcoinMaxBlock = (await deadline()).latestHeight;
     
     // Load bitcoin.json file and update bitcoinMax/bitcoinMaxBlock
@@ -504,7 +501,6 @@ bot.onText(/\/prodillo/, async (msg) => {
 // When user writes /lista, sends a list of all registered prodillos
 bot.onText(/\/listilla/, async (msg) => {
   try {
-    
     // Read prodillo.json file and store it in a local variable
     prodillos = JSON.parse(await fs.promises.readFile(PRODILLO_FILE, 'utf-8'));
     
