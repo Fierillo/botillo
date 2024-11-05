@@ -59,6 +59,11 @@ let isWon: boolean = false;
 let isPromote: boolean = true;
 let winnerName: string = '';
 let trofeillos: Record<string, { champion: string; trofeillo: string[]}> = {};
+let lastDeadline = {
+  latestHeight: Infinity,
+  winnerDeadline: Infinity,
+  prodilleableDeadline: Infinity,
+}
 
 // Restores prodillos from JSON file
 try {
@@ -79,18 +84,15 @@ async function deadline() {
   try {
     const response = await axios.get('https://mempool.space/api/blocks/tip/height');
     const latestHeight = Number(response.data);
-    return {
+    lastDeadline = {
       latestHeight: latestHeight,
       winnerDeadline: 2015 - latestHeight % 2016, // 2016 is the Bitcoin difficulty adjustment
       prodilleableDeadline: (2015 - latestHeight % 2016) - 420, // prodillos can be submitted 420 blocks before the difficulty adjustment
-    }
+    };
+    return lastDeadline;
   } catch (error) {
     console.error('Error al obtener deadline');
-    return {
-      latestHeight: Infinity,
-      winnerDeadline: Infinity,
-      prodilleableDeadline: Infinity,
-    }
+    return lastDeadline;
   };
 }
 
