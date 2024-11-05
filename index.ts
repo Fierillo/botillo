@@ -1,5 +1,6 @@
 // Dependecy imports
 import axios from "axios";
+import { execSync } from "child_process";
 import { TextChannel, Message } from "discord.js";
 import { config } from "dotenv";
 const schedule = require('node-schedule');
