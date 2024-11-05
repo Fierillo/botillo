@@ -118,10 +118,10 @@ const getBitcoinPrice = async (): Promise<number> => {
 // Set interval that records the Bitcoin price in a local list
 (async function recordBitcoinPrice() {
   while (true) {
-  try {
+    try {
       const price = await getBitcoinPrice();
       bitcoinPrice.push(price);
-  } catch (error) {
+    } catch (error) {
       console.error('Error al actualizar el precio de Bitcoin');
     }
     await new Promise(resolve => setTimeout(resolve, PRICE_TIME_INTERVAL)); 
@@ -133,65 +133,65 @@ async function trackBitcoinPrice() {
   while (true) {
     try {
 
-    // If price is higher than reported max...
+      // If price is higher than reported max...
       if (Math.max(...bitcoinPrice) > lastReportedMax) {
         lastReportedMax = Math.max(...bitcoinPrice);
-      
-      // Load bitcoin.json file and update lastReportedMax
+        
+        // Load bitcoin.json file and update lastReportedMax
         const data = JSON.parse(await fs.promise.readFile(BITCOIN_FILE, 'utf-8'));
-      data.lastReportedMax = lastReportedMax;
+        data.lastReportedMax = lastReportedMax;
         await fs.promise.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
-      
-      // If price is higher than ATH, report it and update ATH record
+        
+        // If price is higher than ATH, report it and update ATH record
         if (lastReportedMax > bitcoinATH) {
-        data.bitcoinATH = lastReportedMax
-        bitcoinATH = lastReportedMax
+          data.bitcoinATH = lastReportedMax
+          bitcoinATH = lastReportedMax
           await fs.promise.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
-        console.log(`BITCOIN ATH: ${bitcoinATH}`)
-        for (const chatId in telegramChats) {
-          if (telegramChats[chatId]) {
-            bot.sendMessage(Number(chatId), `NUEVO ATH DE ฿: $${bitcoinATH}`);
+          console.log(`BITCOIN ATH: ${bitcoinATH}`)
+          for (const chatId in telegramChats) {
+            if (telegramChats[chatId]) {
+              bot.sendMessage(Number(chatId), `NUEVO ATH DE ฿: $${bitcoinATH}`);
+            }
+          }
+          for (const channelId in discordChannels) {
+            await discordChannels[channelId].send(`NUEVO ATH DE ฿: $${bitcoinATH}`);
+          }
+        } else {
+          // OR send daily high to all Telegram chats...
+          for (const chatId in telegramChats) {
+            if (telegramChats[chatId]) {
+              bot.sendMessage(Number(chatId), `nuevo máximo diario de ฿: $${lastReportedMax}`);
+            }
+          }
+          
+          // and to all Discord channels
+          for (const channelId in discordChannels) {
+            await discordChannels[channelId].send(`nuevo máximo diario de ฿: $${lastReportedMax}`);
           }
         }
-        for (const channelId in discordChannels) {
-          await discordChannels[channelId].send(`NUEVO ATH DE ฿: $${bitcoinATH}`);
-        }
-      } else {
-        // OR send daily high to all Telegram chats...
+      }
+
+      // If price is lower than reported min...
+      if (Math.min(...bitcoinPrice) < lastReportedMin) {
+        lastReportedMin = Math.min(...bitcoinPrice);
+
+        // Load bitcoin.json file and update lastReportedMin
+        const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf8'));
+        data.lastReportedMin = lastReportedMin;
+        await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
+        
+        // Then send to all Telegram chats...
         for (const chatId in telegramChats) {
           if (telegramChats[chatId]) {
-            bot.sendMessage(Number(chatId), `nuevo máximo diario de ฿: $${lastReportedMax}`);
+            bot.sendMessage(Number(chatId), `🐻 nuevo mínimo diario de ฿: $${lastReportedMin}`);
           }
         }
         
         // and to all Discord channels
         for (const channelId in discordChannels) {
-          await discordChannels[channelId].send(`nuevo máximo diario de ฿: $${lastReportedMax}`);
+          await discordChannels[channelId].send(`🐻 nuevo mínimo diario de ฿: $${lastReportedMin}`);
         }
       }
-    }
-
-    // If price is lower than reported min...
-      if (Math.min(...bitcoinPrice) < lastReportedMin) {
-        lastReportedMin = Math.min(...bitcoinPrice);
-
-      // Load bitcoin.json file and update lastReportedMin
-      const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf8'));
-      data.lastReportedMin = lastReportedMin;
-      await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
-      
-      // Then send to all Telegram chats...
-      for (const chatId in telegramChats) {
-        if (telegramChats[chatId]) {
-          bot.sendMessage(Number(chatId), `🐻 nuevo mínimo diario de ฿: $${lastReportedMin}`);
-        }
-      }
-      
-      // and to all Discord channels
-      for (const channelId in discordChannels) {
-        await discordChannels[channelId].send(`🐻 nuevo mínimo diario de ฿: $${lastReportedMin}`);
-      }
-    }
     } catch (error) {
       console.error('Error en el seguimiento de precio de Bitcoin:', error);
     }
@@ -353,89 +353,89 @@ bot.onText(/(?<=\s|^)(eth|solana|sol |bcash|bch |polkadot|dot |cardano|ada )\w*/
 (async function prodilloInterval() {
   while (true) {
   
-  // Check if deadline for prodillos is over
-  isProdilleabe = (await deadline()).prodilleableDeadline > 0;
-  
-  // Check if winner has been announced and some blocks passed
-  if (isWon && (await deadline()).winnerDeadline < 2010) {
-    isWon = false
-  }
-  
-  // Updates bitcoinMax to track maximum BTC price in the current round, also record it in a JSON file. Aditionally record the correspondent block height
+    // Check if deadline for prodillos is over
+    isProdilleabe = (await deadline()).prodilleableDeadline > 0;
+    
+    // Check if winner has been announced and some blocks passed
+    if (isWon && (await deadline()).winnerDeadline < 2010) {
+      isWon = false
+    }
+    
+    // Updates bitcoinMax to track maximum BTC price in the current round, also record it in a JSON file. Aditionally record the correspondent block height
     if (Math.max(...bitcoinPrice) > bitcoinMax) {
       bitcoinMax = Math.max(...bitcoinPrice);
-    bitcoinMaxBlock = (await deadline()).latestHeight;
-    
-    // Load bitcoin.json file and update bitcoinMax/bitcoinMaxBlock
-    try {
-    const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf8'));
-      data.bitcoinMax = bitcoinMax;
-      data.bitcoinMaxBlock = bitcoinMaxBlock;
-      await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
-    } catch (err) {
-      console.error('Failed to save the maximum Bitcoin price:', err);
+      bitcoinMaxBlock = (await deadline()).latestHeight;
+      
+      // Load bitcoin.json file and update bitcoinMax/bitcoinMaxBlock
+      try {
+      const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf8'));
+        data.bitcoinMax = bitcoinMax;
+        data.bitcoinMaxBlock = bitcoinMaxBlock;
+        await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
+      } catch (err) {
+        console.error('Failed to save the maximum Bitcoin price:', err);
+      }
     }
-  }
-  
-  // Triggers win event if deadline is over (difficulty adjustment of Bitcoin)
-  if (((await deadline()).winnerDeadline === 0 && !isWon) || isWin) {
     
-    // Read prodillo.json file and store it in a local variable
-    prodillos = JSON.parse(await fs.promises.readFile(PRODILLO_FILE, 'utf-8'));
-    
-    // Sort the prodillos by their difference from the current Max Bitcoin price of the round
-    const prodillosSorted = Object.entries(prodillos).sort(([,a],[,b]) => 
-      Math.abs(a.predict - bitcoinMax) - Math.abs(b.predict - bitcoinMax)
-    );
-    
-    // Format the list of prodillos
-    const formattedList = prodillosSorted.map(([userId, { user, predict }]) => {
-      return `${user}: $${predict} (dif: ${(Math.abs(predict as unknown as number - bitcoinMax))})`}).join('\n');
+    // Triggers win event if deadline is over (difficulty adjustment of Bitcoin)
+    if (((await deadline()).winnerDeadline === 0 && !isWon) || isWin) {
+      
+      // Read prodillo.json file and store it in a local variable
+      prodillos = JSON.parse(await fs.promises.readFile(PRODILLO_FILE, 'utf-8'));
+      
+      // Sort the prodillos by their difference from the current Max Bitcoin price of the round
+      const prodillosSorted = Object.entries(prodillos).sort(([,a],[,b]) => 
+        Math.abs(a.predict - bitcoinMax) - Math.abs(b.predict - bitcoinMax)
+      );
+      
+      // Format the list of prodillos
+      const formattedList = prodillosSorted.map(([userId, { user, predict }]) => {
+        return `${user}: $${predict} (dif: ${(Math.abs(predict as unknown as number - bitcoinMax))})`}).join('\n');
 
-    // Stores the winner in local variables
-    const winnerId = prodillosSorted[0][0];
-    winnerName = prodillosSorted[0][1].user;
-    
-    // Send a message to all Telegram chats
-    for (const chatId in telegramChats) {
+      // Stores the winner in local variables
+      const winnerId = prodillosSorted[0][0];
+      winnerName = prodillosSorted[0][1].user;
+      
+      // Send a message to all Telegram chats
+      for (const chatId in telegramChats) {
         await bot.sendMessage(chatId, `<pre>🏁 ¡LA RONDA A LLEGADO A SU FIN!\nMaximo de ฿ de esta ronda: $${bitcoinMax}\n------------------------------------------\n${formattedList}\n\nEl ganador es ${winnerName} 🏆</pre>`, { parse_mode: 'HTML' });
-    }
+      }
 
-    // Read trofeillos.json file and store it in a global variable
-    try {
-    trofeillos = JSON.parse(fs.readFileSync('trofeillos.json', 'utf-8'));
-    } catch (error) {
-    console.log('No se pudo leer el archivo de trofeillos.');
-    }
+      // Read trofeillos.json file and store it in a global variable
+      try {
+      trofeillos = JSON.parse(fs.readFileSync('trofeillos.json', 'utf-8'));
+      } catch (error) {
+      console.log('No se pudo leer el archivo de trofeillos.');
+      }
 
-    // Add the new trophy to winner
-    if (!trofeillos[winnerId]) {
-      trofeillos[winnerId] = { 
-      champion: winnerName, 
-      trofeillo: [`${trofeillo}[${bitcoinMaxBlock}]`],
-      };
-    } else {
-      trofeillos[winnerId].trofeillo.push(`${trofeillo}[${bitcoinMaxBlock}]`);
-    }
-  
-    // Save the new trophy status in a JSON file
-    fs.writeFileSync(TROFEILLOS_FILE, JSON.stringify(trofeillos, null, 2));
+      // Add the new trophy to winner
+      if (!trofeillos[winnerId]) {
+        trofeillos[winnerId] = { 
+        champion: winnerName, 
+        trofeillo: [`${trofeillo}[${bitcoinMaxBlock}]`],
+        };
+      } else {
+        trofeillos[winnerId].trofeillo.push(`${trofeillo}[${bitcoinMaxBlock}]`);
+      }
+    
+      // Save the new trophy status in a JSON file
+      fs.writeFileSync(TROFEILLOS_FILE, JSON.stringify(trofeillos, null, 2));
 
-    // Restart max BTC price for the nex round
-    bitcoinMax = 0;
-    
-    // Wipe bitcoin.json file
-    fs.writeFileSync(BITCOIN_FILE, JSON.stringify({}, null, 2));
-    
-    // Wipe prodillo.json file
-    fs.writeFileSync(PRODILLO_FILE, JSON.stringify({}, null, 2));
-    
-    // Write Hal Finney prediction as tribute
-    fs.writeFileSync(PRODILLO_FILE, JSON.stringify({'0': {user: 'Hal Finney', predict: 10000000}}, null, 2));
-    
-    // Prevents that win event is triggered again for a while
-    isWon = true
-  }
+      // Restart max BTC price for the nex round
+      bitcoinMax = 0;
+      
+      // Wipe bitcoin.json file
+      fs.writeFileSync(BITCOIN_FILE, JSON.stringify({}, null, 2));
+      
+      // Wipe prodillo.json file
+      fs.writeFileSync(PRODILLO_FILE, JSON.stringify({}, null, 2));
+      
+      // Write Hal Finney prediction as tribute
+      fs.writeFileSync(PRODILLO_FILE, JSON.stringify({'0': {user: 'Hal Finney', predict: 10000000}}, null, 2));
+      
+      // Prevents that win event is triggered again for a while
+      isWon = true
+    }
     await new Promise(resolve => setTimeout(resolve, PRODILLO_TIME_INTERVAL));
   }
 })();
@@ -518,13 +518,6 @@ bot.onText(/\/listilla/, async (msg) => {
     sortedProdillos.forEach(({ user, predict, diff }) => {
       formattedList += `${user.padEnd(25, ' ')} | $${(predict.toString()).padStart(10, ' ')} | ${diff}\n`;
     });
-
-    const prodilloTitle = `
- _____              _  _  _  _      
-|  _  | ___  ___  _| ||_|| || | ___ 
-|   __||  _|| . || . || || || || . |
-|__|   |_|  |___||___||_||_||_||___|`
-
     await bot.sendMessage(msg.chat.id, `<pre><b>L I S T A  D E  P R O D I L L O S:</b>\n\nPrecio máximo de ฿ en esta ronda: $${bitcoinMax}\n-----------------------------------------------------\n${formattedList}\n\n🟧⛏️ Tiempo restante para mandar prodillos: ${isProdilleabe ? prodilleableDeadline : 0} bloques\n🏁 Tiempo restante para saber ganador: ${winnerDeadline} bloques</pre>`, { parse_mode: 'HTML' });
   } catch (error) {
     console.error('Error al leer o enviar la lista:', error);
@@ -541,19 +534,9 @@ bot.onText(/\/trofeillos/, (msg) => {
   } catch (e) {
     trofeillos = {};
   }
-
-  const trofeillosTitle = `
-████████╗██████╗  ██████╗ ███████╗███████╗██╗██╗     ██╗      ██████╗ ███████╗
-╚══██╔══╝██╔══██╗██╔═══██╗██╔════╝██╔════╝██║██║     ██║     ██╔═══██╗██╔════╝
-   ██║   ██████╔╝██║   ██║█████╗  █████╗  ██║██║     ██║     ██║   ██║███████╗
-   ██║   ██╔══██╗██║   ██║██╔══╝  ██╔══╝  ██║██║     ██║     ██║   ██║╚════██║
-   ██║   ██║  ██║╚██████╔╝██║     ███████╗██║███████╗███████╗╚██████╔╝███████║
-   ╚═╝   ╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚══════╝╚═╝╚══════╝╚══════╝ ╚═════╝ ╚══════╝`
-
   let mensaje = "";
   for (const [id, data] of Object.entries(trofeillos)) {
     mensaje += `\n- ${data.champion}: ${data.trofeillo}`;
   }
-
   bot.sendMessage(msg.chat.id, `<pre><b>S A L A  D E  T R O F E I L L O S</b>\n\nUltimo campeón: ${winnerName}\nCampeón: 🏆 [nro. de bloque]\n------------------------------------------------------------------------------${mensaje || 'No hay ganadores aún.'}</pre>`, { parse_mode: 'HTML' });
 });
