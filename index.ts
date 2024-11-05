@@ -140,15 +140,15 @@ async function trackBitcoinPrice() {
         lastReportedMax = Math.max(...bitcoinPrice);
         
         // Load bitcoin.json file and update lastReportedMax
-        const data = JSON.parse(await fs.promise.readFile(BITCOIN_FILE, 'utf-8'));
+        const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf-8'));
         data.lastReportedMax = lastReportedMax;
-        await fs.promise.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
+        await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
         
         // If price is higher than ATH, report it and update ATH record
         if (lastReportedMax > bitcoinATH) {
           data.bitcoinATH = lastReportedMax
           bitcoinATH = lastReportedMax
-          await fs.promise.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
+          await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
           console.log(`BITCOIN ATH: ${bitcoinATH}`)
           for (const chatId in telegramChats) {
             if (telegramChats[chatId]) {
