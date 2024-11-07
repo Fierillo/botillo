@@ -62,7 +62,7 @@ let isWon: boolean = false;
 let isPromote: boolean = true;
 let winnerName: string = '';
 let trofeillos: Record<string, { champion: string; trofeillo: string[]}> = {};
-let lastPrice: number = 21;
+let lastPrices: { price: number, min: number, max: number } = { price: 21, min: 21, max: 21 };
 let lastDeadline = {
   latestHeight: Infinity,
   winnerDeadline: Infinity,
@@ -106,38 +106,29 @@ async function deadline() {
 }
 
 // Define function that fetches the Bitcoin price using Binance API
-const getBitcoinPrice = async (): Promise<number> => {
+async function getBitcoinPrices () {
   try {  
-    const { data } = await axios.get<{ lastPrice: string }>('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT');
-    lastPrice = parseInt(data.lastPrice);
-    return lastPrice;
+    const { data } = await axios.get<{ last: string, low: string, high: string }>('https://www.bitstamp.net/api/v2/ticker/btcusd');
+    lastPrices = {
+      price: parseInt(data.last),
+      min: parseInt(data.low),
+      max: parseInt(data.high),
+    }
+    return lastPrices;
   } catch (error) {
     console.error('Error al obtener el precio de Bitcoin:', error);
-    return lastPrice;
+    return lastPrices;
   }
 };
-
-// Set interval that records the Bitcoin price in a local list
-(async function recordBitcoinPrice() {
-  while (true) {
-    try {
-      const price = await getBitcoinPrice();
-      bitcoinPrice.push(price);
-    } catch (error) {
-      console.error('Error al actualizar el precio de Bitcoin');
-    }
-    await new Promise(resolve => setTimeout(resolve, PRICE_TIME_INTERVAL));
-  }
-})();
 
 // Define function that tracks the Bitcoin price at regular intervals and report the max and min only if values surpass old reported values
 async function trackBitcoinPrice() {
   while (true) {
     try {
-
+      const { min, max } = await getBitcoinPrices();
       // If price is higher than reported max...
-      if (Math.max(...bitcoinPrice) > lastReportedMax) {
-        lastReportedMax = Math.max(...bitcoinPrice);
+      if (max > lastReportedMax) {
+        lastReportedMax = max;
         
         // Load bitcoin.json file and update lastReportedMax
         const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf-8'));
@@ -174,8 +165,8 @@ async function trackBitcoinPrice() {
       }
 
       // If price is lower than reported min...
-      if (Math.min(...bitcoinPrice) < lastReportedMin) {
-        lastReportedMin = Math.min(...bitcoinPrice);
+      if (min < lastReportedMin) {
+        lastReportedMin = min;
 
         // Load bitcoin.json file and update lastReportedMin
         const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf8'));
@@ -256,10 +247,11 @@ client.on('ready', () => {
 // Send Bitcoin price when user writes /precio, and max/min BTC price when user writes /hilo
 client.on('messageCreate', async (message: { content: string; channel: TextChannel; }) => {
   if (message.content === '/precio') {
-    const price = await getBitcoinPrice();
+    const { price } = await getBitcoinPrices();
     (message.channel as TextChannel).send(`precio de ฿: $${price}`);
   } else if (message.content === '/hilo') {
-    (message.channel as TextChannel).send(`máximo diario de ฿: $${lastReportedMax}\n🐻 mínimo diario de ฿: $${lastReportedMin}`);
+    const { max, min } = await getBitcoinPrices();
+    (message.channel as TextChannel).send(`máximo diario de ฿: $${max}\n🐻 mínimo diario de ฿: $${min}`);
 }});
 
 // Bot says GM every day at 8am (UTC-3)
@@ -285,13 +277,14 @@ bot.on('message', (msg) => {
 
 // Send Bitcoin price when user writes /precio
 bot.onText(/\/precio/, async (msg) => {
-  const price = await getBitcoinPrice();
+  const { price } = await getBitcoinPrices();
   bot.sendMessage(msg.chat.id, `precio actual de ฿: $${price}`);
 });
 
 // Send High and Low prices when user writes /hilo
 bot.onText(/\/hilo/, async (msg) => {
-  bot.sendMessage(msg.chat.id, `máximo diario de ฿: $${lastReportedMax}\n🐻 mínimo diario de ฿: $${lastReportedMin}`);
+  const { max, min } = await getBitcoinPrices();
+  bot.sendMessage(msg.chat.id, `máximo diario de ฿: $${max}\n🐻 mínimo diario de ฿: $${min}`);
 });
 
 // Welcome message constant
@@ -355,8 +348,11 @@ bot.onText(/(?<=\s|^)(eth|solana|sol |bcash|bch |polkadot|dot |cardano|ada )\w*/
 (async function prodilloInterval() {
   while (true) {
 
-    // Calls deadline function and stores in local variables
+    // Calls deadline() values
     const { winnerDeadline, prodilleableDeadline, latestHeight } = await deadline();
+
+    // Calls getBitcoinPrices() values
+    const { max } = await getBitcoinPrices();
   
     // Check if deadline for prodillos is over
     isProdilleabe = (prodilleableDeadline > 0);
@@ -367,8 +363,8 @@ bot.onText(/(?<=\s|^)(eth|solana|sol |bcash|bch |polkadot|dot |cardano|ada )\w*/
     }
     
     // Updates bitcoinMax to track maximum BTC price in the current round, also record it in a JSON file. Aditionally record the correspondent block height
-    if (Math.max(...bitcoinPrice) > bitcoinMax) {
-      bitcoinMax = Math.max(...bitcoinPrice);
+    if (max > bitcoinMax) {
+      bitcoinMax = max;
       bitcoinMaxBlock = latestHeight;
       
       // Load bitcoin.json file and update bitcoinMax/bitcoinMaxBlock
