@@ -73,7 +73,7 @@ let lastDeadline = {
 try {
   prodillos = JSON.parse(fs.readFileSync(PRODILLO_FILE, 'utf-8'));
 } catch (e) {
-  console.warn('No se pudo leer el archivo de predicciones. Se iniciará uno nuevo.');
+  console.warn('No se pudo leer el archivo prodillo.json\nSe iniciará uno nuevo.');
 }
 
 // Restores Bitcoin prices from bitcoin.json file
@@ -85,7 +85,7 @@ try {
   bitcoinATH = data.bitcoinATH;
   bitcoinMaxBlock = data.bitcoinMaxBlock;
 } catch (e) {
-  console.warn('No se pudo leer el archivo de precios de Bitcoin. Se iniciará uno nuevo.');
+  console.warn('No se pudo leer el archivo bitcoin.json\nSe iniciará uno nuevo.');
 }
 
 // Initialize starting deadline for Prodillo game, next Bitcoin difficulty adjustment using mempool API
@@ -100,7 +100,7 @@ async function deadline() {
     };
     return lastDeadline;
   } catch (error) {
-    console.error('Error al obtener deadline');
+    console.error('Error en deadline()');
     return lastDeadline;
   };
 }
@@ -116,7 +116,7 @@ async function getBitcoinPrices () {
     }
     return lastPrices;
   } catch (error) {
-    console.error('Error al obtener el precio de Bitcoin:', error);
+    console.error('Error en getBitcoinPrices()');
     return lastPrices;
   }
 };
@@ -364,7 +364,7 @@ async function prodilloInterval() {
         data.bitcoinMaxBlock = bitcoinMaxBlock;
         await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
       } catch (err) {
-        console.error('Failed to save the maximum Bitcoin price:', err);
+        console.error('Failed to save the maximum Bitcoin price');
       }
     }
     
@@ -467,7 +467,7 @@ bot.onText(/\/prodillo/, async (msg) => {
       const fileContent = await fs.promises.readFile(PRODILLO_FILE, 'utf-8');
       prodillos = JSON.parse(fileContent);
     } catch (error) {
-      console.error('Error leyendo prodillo.json:', error);
+      console.error('Error en /prodillo');
     }
 
     // Check if the prediction already exists
@@ -511,7 +511,7 @@ bot.onText(/\/listilla/, async (msg) => {
     });
     await bot.sendMessage(msg.chat.id, `<pre><b>LISTA DE PRODILLOS:</b>\n\nPrecio máximo de ฿ en esta ronda: $${bitcoinMax}\n-----------------------------------------------------\n${formattedList}\n\n🟧⛏️ Tiempo restante para mandar prodillos: ${isProdilleabe ? prodilleableDeadline : 0} bloques\n🏁 Tiempo restante para saber ganador: ${winnerDeadline} bloques</pre>`, { parse_mode: 'HTML' });
   } catch (error) {
-    console.error('Error al leer o enviar la lista:', error);
+    console.error('Error en /listilla');
     await bot.sendMessage(msg.chat.id, 'No se pudo obtener la lista de prodillos.');
   }
 });
