@@ -194,7 +194,7 @@ async function trackBitcoinPrice() {
 };
 
 // Sends SE VIENE message at random intervals to all channels and chats where bot is
-(function seViene() {
+function seViene() {
   const luckyNumber = Math.random();
   const selectedMsg = luckyNumber <= 0.1 ? '🫂 ABRACEN A SUS FAMILIAS!' : luckyNumber <= 0.8 ? 'SE VIENE' : '🔥 SE RECONTRA VIENE';
   
@@ -202,7 +202,7 @@ async function trackBitcoinPrice() {
   Object.keys(telegramChats).forEach(chatId => bot.sendMessage(Number(chatId),selectedMsg!));
   Object.values(discordChannels).forEach(channel => channel.send(selectedMsg!));
   setTimeout(seViene, Math.random() * ((69 - 1)*3600*1000) + 1 * 3600*1000); // Interval between 1 and 69 hours
-})();
+};
 
 // Define cron job to reset daily highs and lows at midnight (UTC = 00:00)
 schedule.scheduleJob('0 21 * * *', async () => { // 21:00 at local time (UTC-3) = 00:00 UTC
@@ -226,6 +226,7 @@ schedule.scheduleJob('0 21 * * *', async () => { // 21:00 at local time (UTC-3) 
   }
 });
 
+// STARTING EVENT
 // Detects automatically the Discord server where the bot is, detects the first text-based channel, store it and send a message to it
 client.on('ready', () => {
   console.log(execSync('git log -1 --pretty=%B').toString().trim())
@@ -240,8 +241,10 @@ client.on('ready', () => {
     });
   });
 
-  // Start tracking Bitcoin price
-  trackBitcoinPrice();
+  // Starts main functions
+  setTimeout(trackBitcoinPrice, 2100);
+  setTimeout(prodilloInterval, 2100);
+  setTimeout(seViene, 2100);
 });
 
 // Send Bitcoin price when user writes /precio, and max/min BTC price when user writes /hilo
@@ -345,7 +348,7 @@ bot.onText(/(?<=\s|^)(eth|solana|sol |bcash|bch |polkadot|dot |cardano|ada )\w*/
 });*/
 
 // Defines interval that checks deadlines and enable/disable prodillos. When deadline is over, sends a message to all Telegram chats to let them know the winner
-(async function prodilloInterval() {
+async function prodilloInterval() {
   while (true) {
 
     // Calls deadline() values
@@ -439,7 +442,7 @@ bot.onText(/(?<=\s|^)(eth|solana|sol |bcash|bch |polkadot|dot |cardano|ada )\w*/
     }
     await new Promise(resolve => setTimeout(resolve, PRODILLO_TIME_INTERVAL));
   }
-})();
+};
 
 /*/ Define timer to promote prodillo game with a misterious message
 (async function promoteProdillo() {
