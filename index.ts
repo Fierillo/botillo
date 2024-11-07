@@ -142,21 +142,15 @@ async function trackBitcoinPrice() {
           await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
           console.log(`BITCOIN ATH: ${bitcoinATH}`)
           
-          // Send new ATH to all Telegram chats...
+          // Sends ATH message to all Telegram and Discord chats
           Object.keys(telegramChats).forEach(chatId => bot.sendMessage(Number(chatId),`NUEVO ATH DE ฿: $${bitcoinATH}`));
-          
-          // and to all Discord channels
           Object.values(discordChannels).forEach(channel => channel.send(`NUEVO ATH DE ฿: $${bitcoinATH}`));
-        } else {
-          
-          // OR send daily high to all Telegram chats...
+        } else {  
+          // OR sends daily high message to all Telegram and Discord chats
           Object.keys(telegramChats).forEach(chatId => bot.sendMessage(Number(chatId),`nuevo máximo diario de ฿: $${lastReportedMax}`));
-          
-          // and to all Discord channels
           Object.values(discordChannels).forEach(channel => channel.send(`nuevo máximo diario de ฿: $${lastReportedMax}`));
         }
       }
-
       // If price is lower than reported min...
       if (min < lastReportedMin) {
         lastReportedMin = min;
@@ -166,16 +160,13 @@ async function trackBitcoinPrice() {
         data.lastReportedMin = lastReportedMin;
         await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
         
-        // Then send to all Telegram chats...
-        Object.keys(telegramChats).forEach(chatId => bot.sendMessage(Number(chatId),`🐻 nuevo mínimo diario de ฿: $${lastReportedMin}`));   
-        
-        // and to all Discord channels
+        // Sends daily low message to all Telegram and Discord chats
+        Object.keys(telegramChats).forEach(chatId => bot.sendMessage(Number(chatId),`🐻 nuevo mínimo diario de ฿: $${lastReportedMin}`));
         Object.values(discordChannels).forEach(channel => channel.send(`🐻 nuevo mínimo diario de ฿: $${lastReportedMin}`));
       }
     } catch (error) {
-      console.error('Error en el seguimiento de precio de Bitcoin:', error);
+      console.error('Error en trackBitcoinPrice()');
     }
-    bitcoinPrice = [];
     await new Promise(resolve => setTimeout(resolve, TIME_INTERVAL));
   }
 };
@@ -206,7 +197,6 @@ schedule.scheduleJob('0 21 * * *', async () => { // 21:00 at local time (UTC-3) 
   for (const channelId in discordChannels) {
     discordChannels[channelId].send(`¡GN humanos!\n🔄 reiniciando máximos y mínimos diarios...`);
   }
-  
   // And to all Telegram chats...
   for (const chatId in telegramChats) {
       bot.sendMessage(chatId, `¡GN humanos!\n🔄 reiniciando máximos y mínimos diarios...`);
@@ -227,7 +217,6 @@ client.on('ready', () => {
       }
     });
   });
-
   // Starts main functions
   setTimeout(trackBitcoinPrice, 2100);
   setTimeout(prodilloInterval, 2100);
@@ -310,13 +299,13 @@ bot.onText(/(?<=\s|^)(eth|solana|sol |bcash|bch |polkadot|dot |cardano|ada )\w*/
   }
 });
 
-/*bot.onText(/\/test/, (msg) => {
+bot.onText(/\/test/, (msg) => {
   const test = msg.text?.split('/test ')[1];
   if (test === 'promote') {
     isPromote = true;
     bot.sendMessage(msg.chat.id, '🎙 PROMOTE ON');
   }
-});*/
+});
 
 /*bot.onText(/\/test/, (msg) => {
   const test = msg.text?.split('/test ')[1];
@@ -329,6 +318,9 @@ bot.onText(/(?<=\s|^)(eth|solana|sol |bcash|bch |polkadot|dot |cardano|ada )\w*/
   } else if (test === 'win') {
     isWin = true;
     bot.sendMessage(msg.chat.id, '🏆 WIN ON');
+  } else if (test === 'promote') {
+    isPromote = true;
+    bot.sendMessage(msg.chat.id, '🎙 PROMOTE ON');
   } else {
     bot.sendMessage(msg.chat.id, `¡Ingresaste cualquier cosa loko!\n\n/test on - Activa el modo de prueba\n/test off - Desactiva el modo de prueba'\n/test win - Activa el evento de victoria`);
   }
@@ -430,21 +422,6 @@ async function prodilloInterval() {
     await new Promise(resolve => setTimeout(resolve, PRODILLO_TIME_INTERVAL));
   }
 };
-
-/*/ Define timer to promote prodillo game with a misterious message
-(async function promoteProdillo() {
-  for (const chatId in telegramChats) {
-    await bot.sendMessage(chatId, `🟧 ${(await deadline()).winnerDeadline}`);
-  }
-  if (isPromote) {
-    for (const chatId in telegramChats) {
-      await bot.sendMessage(chatId, `¡BIEVENIDOS AL JUEGO DEL PRODILLO!\n¿Como funciona? 👇\n\nAdivina el maximo precio de BTC de el ciclo, este terminara cuando sea el proximo ajuste de dificultad de Bitcoin.\n¿Que hay que hacer?\nSolo tienes que registrar tu prediccion con /prodillo <precio> y listo, ¡ya estas jugando!\n\nSe podran mandar predicciones hasta 420 bloques antes del proximo ajuste de dificultad de Bitcoin.\n\nUsa el comando /lista para ver todas las predicciones registradas hasta el momento y el precio maximo de BTC en el ciclo actual.\n\n¡Eso es todo!\n¡Gracias por jugar! 🫡`);
-    }
-    isPromote = false
-    return
-  }
-  setTimeout(promoteProdillo, 21*1000); // 
-})();*/
 
 // Stores user predictions of BTC price in a JSON file and replies a reminder with the deadline
 bot.onText(/\/prodillo/, async (msg) => {
