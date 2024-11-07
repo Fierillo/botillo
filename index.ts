@@ -52,14 +52,12 @@ let telegramChats: { [key: number]: boolean } = {};
 let discordChannels: { [key: string]: TextChannel } = {};
 let prodillos: Record<string, { user: string; predict: number }>;
 let isProdilleabe: boolean = false;
-let bitcoinPrice: number[] = [];
 let bitcoinMax: number = 0;
 let bitcoinMaxBlock: number = 0;
 let bitcoinATH: number = 73757;
 let isTest: boolean = false;
 let isWin: boolean = false;
 let isWon: boolean = false;
-let isPromote: boolean = true;
 let winnerName: string = '';
 let trofeillos: Record<string, { champion: string; trofeillo: string[]}> = {};
 let lastPrices: { price: number, min: number, max: number } = { price: 21, min: 21, max: 21 };
@@ -299,14 +297,6 @@ bot.onText(/(?<=\s|^)(eth|solana|sol |bcash|bch |polkadot|dot |cardano|ada )\w*/
   }
 });
 
-bot.onText(/\/test/, (msg) => {
-  const test = msg.text?.split('/test ')[1];
-  if (test === 'promote') {
-    isPromote = true;
-    bot.sendMessage(msg.chat.id, '🎙 PROMOTE ON');
-  }
-});
-
 /*bot.onText(/\/test/, (msg) => {
   const test = msg.text?.split('/test ')[1];
   if (test === 'on') {
@@ -318,9 +308,6 @@ bot.onText(/\/test/, (msg) => {
   } else if (test === 'win') {
     isWin = true;
     bot.sendMessage(msg.chat.id, '🏆 WIN ON');
-  } else if (test === 'promote') {
-    isPromote = true;
-    bot.sendMessage(msg.chat.id, '🎙 PROMOTE ON');
   } else {
     bot.sendMessage(msg.chat.id, `¡Ingresaste cualquier cosa loko!\n\n/test on - Activa el modo de prueba\n/test off - Desactiva el modo de prueba'\n/test win - Activa el evento de victoria`);
   }
