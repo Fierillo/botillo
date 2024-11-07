@@ -141,49 +141,36 @@ async function trackBitcoinPrice() {
           bitcoinATH = lastReportedMax
           await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
           console.log(`BITCOIN ATH: ${bitcoinATH}`)
-          for (const chatId in telegramChats) {
-            if (telegramChats[chatId]) {
-              bot.sendMessage(Number(chatId), `NUEVO ATH DE ฿: $${bitcoinATH}`);
-            }
-          }
-          for (const channelId in discordChannels) {
-            await discordChannels[channelId].send(`NUEVO ATH DE ฿: $${bitcoinATH}`);
-          }
-        } else {
-          // OR send daily high to all Telegram chats...
-          for (const chatId in telegramChats) {
-            if (telegramChats[chatId]) {
-              bot.sendMessage(Number(chatId), `nuevo máximo diario de ฿: $${lastReportedMax}`);
-            }
-          }
+          
+          // Send new ATH to all Telegram chats...
+          Object.keys(telegramChats).forEach(chatId => bot.sendMessage(Number(chatId),`NUEVO ATH DE ฿: $${bitcoinATH}`));
           
           // and to all Discord channels
-          for (const channelId in discordChannels) {
-            await discordChannels[channelId].send(`nuevo máximo diario de ฿: $${lastReportedMax}`);
-          }
+          Object.values(discordChannels).forEach(channel => channel.send(`NUEVO ATH DE ฿: $${bitcoinATH}`));
+        } else {
+          
+          // OR send daily high to all Telegram chats...
+          Object.keys(telegramChats).forEach(chatId => bot.sendMessage(Number(chatId),`nuevo máximo diario de ฿: $${lastReportedMax}`));
+          
+          // and to all Discord channels
+          Object.values(discordChannels).forEach(channel => channel.send(`nuevo máximo diario de ฿: $${lastReportedMax}`));
         }
       }
 
       // If price is lower than reported min...
       if (min < lastReportedMin) {
         lastReportedMin = min;
-
+        
         // Load bitcoin.json file and update lastReportedMin
         const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf8'));
         data.lastReportedMin = lastReportedMin;
         await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
         
         // Then send to all Telegram chats...
-        for (const chatId in telegramChats) {
-          if (telegramChats[chatId]) {
-            bot.sendMessage(Number(chatId), `🐻 nuevo mínimo diario de ฿: $${lastReportedMin}`);
-          }
-        }
+        Object.keys(telegramChats).forEach(chatId => bot.sendMessage(Number(chatId),`🐻 nuevo mínimo diario de ฿: $${lastReportedMin}`));   
         
         // and to all Discord channels
-        for (const channelId in discordChannels) {
-          await discordChannels[channelId].send(`🐻 nuevo mínimo diario de ฿: $${lastReportedMin}`);
-        }
+        Object.values(discordChannels).forEach(channel => channel.send(`🐻 nuevo mínimo diario de ฿: $${lastReportedMin}`));
       }
     } catch (error) {
       console.error('Error en el seguimiento de precio de Bitcoin:', error);
