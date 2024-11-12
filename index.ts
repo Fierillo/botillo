@@ -474,7 +474,7 @@ bot.onText(/\/listilla/, async (msg) => {
     sortedProdillos.forEach(({ user, predict, diff }) => {
       formattedList += `${user.padEnd(25, ' ')} | $${(predict.toString()).padStart(10, ' ')} | ${diff}`;
        if (predict < closestProdillo) {
-         formattedList += ' (REKT!)\n';
+         formattedList += ' (REKT!)';
        }
        formattedList += '\n';
     });
