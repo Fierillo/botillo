@@ -316,7 +316,6 @@ bot.onText(/(?<=\s|^)(eth|solana|sol |bcash|bch |polkadot|dot |cardano|ada )\w*/
 // Defines interval that checks deadlines and enable/disable prodillos. When deadline is over, sends a message to all Telegram chats to let them know the winner
 async function prodilloInterval() {
   while (true) {
-
     // Calls deadline() values
     const { winnerDeadline, prodilleableDeadline, latestHeight } = await deadline();
 
@@ -467,11 +466,17 @@ bot.onText(/\/listilla/, async (msg) => {
       return {user, predict, diff: Math.abs(predict - bitcoinMax)};
     }).sort((a, b) => a.diff - b.diff);
 
+    const closestProdillo = sortedProdillos[0].predict;
+
     let formattedList = `${('Usuario').padEnd(25, ' ')} | ${('Predicción').padEnd(10, ' ')}  | Diferencia\n`;
     formattedList += '-----------------------------------------------------\n';
 
     sortedProdillos.forEach(({ user, predict, diff }) => {
-      formattedList += `${user.padEnd(25, ' ')} | $${(predict.toString()).padStart(10, ' ')} | ${diff}\n`;
+      formattedList += `${user.padEnd(25, ' ')} | $${(predict.toString()).padStart(10, ' ')} | ${diff}`;
+       if (predict < closestProdillo) {
+         formattedList += ' (REKT!)\n';
+       }
+       formattedList += '\n';
     });
     await bot.sendMessage(msg.chat.id, `<pre><b>LISTA DE PRODILLOS:</b>\n\nPrecio máximo de ฿ en esta ronda: $${bitcoinMax}\n-----------------------------------------------------\n${formattedList}\n\n🟧⛏️ Tiempo restante para mandar prodillos: ${isProdilleabe ? prodilleableDeadline : 0} bloques\n🏁 Tiempo restante para saber ganador: ${winnerDeadline} bloques</pre>`, { parse_mode: 'HTML' });
   } catch (error) {
