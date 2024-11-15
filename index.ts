@@ -410,7 +410,7 @@ async function prodilloInterval() {
 };
 
 // Stores user predictions of BTC price in a JSON file and replies a reminder with the deadline
-bot.onText(/\/prodillo/, async (msg) => {
+bot.onText(/\/prodillo(\s|\@botillo21_bot\s)(\d+)/, async (msg, match) => {
   
   // Calls deadline function and stores in local variables
   const { winnerDeadline, prodilleableDeadline } = await deadline();
@@ -421,7 +421,8 @@ bot.onText(/\/prodillo/, async (msg) => {
   }
   const userId = msg.from?.id;
   const user = msg.from?.username;
-  const predict = Math.round(Number(msg.text?.split('/prodillo ')[1]));
+  const predictStr = (match as RegExpMatchArray)[2];
+  const predict = Math.round(Number(predictStr));
   
   if ((isProdilleabe || isTest) && userId && user && !isNaN(predict) && predict >= 0 && isFinite(predict)) {
 
