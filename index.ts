@@ -472,11 +472,11 @@ bot.onText(/\/listilla/, async (msg) => {
     formattedList += '-----------------------------------------------------\n';
 
     sortedProdillos.forEach(({ user, predict, diff }) => {
-      formattedList += `${user.padEnd(25, ' ')} | $${(predict.toString()).padStart(10, ' ')} | ${diff}`;
-       if (predict < closestProdillo) {
-         formattedList += ' (REKT!)';
-       }
-       formattedList += '\n';
+      if (predict < closestProdillo) {
+        formattedList += `<s>${user.padEnd(20, ' ')} | $${(predict.toString()).padStart(10, ' ')} | ${diff}</s> (REKT!)\n`;
+      } else {
+        formattedList += `${user.padEnd(20, ' ')} | $${(predict.toString()).padStart(10, ' ')} | ${diff}\n`;
+      }
     });
     await bot.sendMessage(msg.chat.id, `<pre><b>LISTA DE PRODILLOS:</b>\n\nPrecio máximo de ฿ en esta ronda: $${bitcoinMax}\n-----------------------------------------------------\n${formattedList}\n\n🟧⛏️ Tiempo restante para mandar prodillos: ${isProdilleabe ? prodilleableDeadline : 0} bloques\n🏁 Tiempo restante para saber ganador: ${winnerDeadline} bloques</pre>`, { parse_mode: 'HTML' });
   } catch (error) {
