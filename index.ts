@@ -435,9 +435,21 @@ bot.onText(/\/prodillo/, async (msg) => {
 
     // Check if the prediction already exists
     const existingPredictions = Object.values(prodillos).map(p => p.predict);
-      if (existingPredictions.includes(predict)) {
-        return await bot.sendMessage(msg.chat.id, `Ese prodillo ya existe. ¡Elegi otro valor loko!`);
-      }
+    if (existingPredictions.includes(predict)) {
+      return await bot.sendMessage(msg.chat.id, `Ese prodillo ya existe. ¡Elegi otro valor loko!`);
+    }
+    
+    // Check if the prediction has any chance of winning
+    // Defines closestProdillo variable that stores the closest prodillo to the current max BTC price
+    const sortedProdillos = Object.entries(prodillos).map(([userId, { user, predict }]) => {
+      return {user, predict, diff: Math.abs(predict - bitcoinMax)};
+    }).sort((a, b) => a.diff - b.diff);
+
+    const closestProdillo = sortedProdillos[0].predict;
+    // If the prediction is lower than closestProdillo, returns a message to the user
+    if (predict < closestProdillo) {
+      return await bot.sendMessage(msg.chat.id, `Este prodillo no tiene NINGUNA chance de ganar.\nTenes que ingresar un valor mayor a ${closestProdillo} para tener alguna chance.\nMentalidad de tiburón loko!`);
+    }
     
     // Stores user prediction in a prodillo.json file
     prodillos[userId] = {
