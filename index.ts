@@ -468,7 +468,7 @@ bot.onText(/\/listilla/, async (msg) => {
 
     const closestProdillo = sortedProdillos[0].predict;
 
-    let formattedList = `${('Usuario').padEnd(25, ' ')} | ${('Predicción').padEnd(10, ' ')}  | Diferencia\n`;
+    let formattedList = `${('Usuario').padEnd(20, ' ')} | ${('Predicción').padEnd(10, ' ')}  | Diferencia\n`;
     formattedList += '-----------------------------------------------------\n';
 
     sortedProdillos.forEach(({ user, predict, diff }) => {
