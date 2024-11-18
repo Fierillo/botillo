@@ -326,7 +326,7 @@ async function prodilloInterval() {
     isProdilleabe = (prodilleableDeadline > 0);
     
     // Check if winner has been announced and some blocks passed
-    if (isWon && (winnerDeadline < 2010)) {
+    if (isWon && !(winnerDeadline === 0) && (winnerDeadline < 2010)) {
       isWon = false
     }
     
