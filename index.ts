@@ -139,12 +139,12 @@ async function trackBitcoinPrice() {
           console.log(`BITCOIN ATH: ${bitcoinATH}`)
           
           // Sends ATH message to all Telegram and Discord chats
-          Object.keys(telegramChats).forEach(chatId => bot.sendMessage(Number(chatId),`NUEVO ATH DE ฿: $${bitcoinATH}`));
-          Object.values(discordChannels).forEach(channel => channel.send(`NUEVO ATH DE ฿: $${bitcoinATH}`));
+          Object.keys(telegramChats).forEach(chatId => bot.sendMessage(Number(chatId),`NUEVO ATH DE ₿: $${bitcoinATH}`));
+          Object.values(discordChannels).forEach(channel => channel.send(`NUEVO ATH DE ₿: $${bitcoinATH}`));
         } else {  
           // OR sends daily high message to all Telegram and Discord chats
-          Object.keys(telegramChats).forEach(chatId => bot.sendMessage(Number(chatId),`nuevo máximo diario de ฿: $${lastReportedMax}`));
-          Object.values(discordChannels).forEach(channel => channel.send(`nuevo máximo diario de ฿: $${lastReportedMax}`));
+          Object.keys(telegramChats).forEach(chatId => bot.sendMessage(Number(chatId),`nuevo máximo diario de ₿: $${lastReportedMax}`));
+          Object.values(discordChannels).forEach(channel => channel.send(`nuevo máximo diario de ₿: $${lastReportedMax}`));
         }
       }
       // If price is lower than reported min...
@@ -157,8 +157,8 @@ async function trackBitcoinPrice() {
         await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
         
         // Sends daily low message to all Telegram and Discord chats
-        Object.keys(telegramChats).forEach(chatId => bot.sendMessage(Number(chatId),`🐻 nuevo mínimo diario de ฿: $${lastReportedMin}`));
-        Object.values(discordChannels).forEach(channel => channel.send(`🐻 nuevo mínimo diario de ฿: $${lastReportedMin}`));
+        Object.keys(telegramChats).forEach(chatId => bot.sendMessage(Number(chatId),`🐻 nuevo mínimo diario de ₿: $${lastReportedMin}`));
+        Object.values(discordChannels).forEach(channel => channel.send(`🐻 nuevo mínimo diario de ₿: $${lastReportedMin}`));
       }
     } catch (error) {
       console.error('Error en trackBitcoinPrice()');
@@ -209,7 +209,7 @@ client.on('ready', () => {
       if (channel.isTextBased() && channel instanceof TextChannel) {
         discordChannels[channel.id] = channel;
         console.log(`Discord channel: ${guild.name} [${channel.id}]`);
-        channel.send(`¡Hola mundillo!\nmáximo diario de ฿: $${lastReportedMax}\n🐻 mínimo diario de ฿: $${lastReportedMin}`);
+        channel.send(`¡Hola mundillo!\nmáximo diario de ₿: $${lastReportedMax}\n🐻 mínimo diario de ₿: $${lastReportedMin}`);
       }
     });
   });
@@ -223,10 +223,10 @@ client.on('ready', () => {
 client.on('messageCreate', async (message: { content: string; channel: TextChannel; }) => {
   if (message.content === '/precio') {
     const { price } = await getBitcoinPrices();
-    (message.channel as TextChannel).send(`precio de ฿: $${price}`);
+    (message.channel as TextChannel).send(`precio de ₿: $${price}`);
   } else if (message.content === '/hilo') {
     const { max, min } = await getBitcoinPrices();
-    (message.channel as TextChannel).send(`máximo diario de ฿: $${max}\n🐻 mínimo diario de ฿: $${min}`);
+    (message.channel as TextChannel).send(`máximo diario de ₿: $${max}\n🐻 mínimo diario de ₿: $${min}`);
 }});
 
 // Bot says GM every day at 8am (UTC-3)
@@ -253,13 +253,13 @@ bot.on('message', (msg) => {
 // Send Bitcoin price when user writes /precio
 bot.onText(/\/precio/, async (msg) => {
   const { price } = await getBitcoinPrices();
-  bot.sendMessage(msg.chat.id, `precio actual de ฿: $${price}`);
+  bot.sendMessage(msg.chat.id, `precio actual de ₿: $${price}`);
 });
 
 // Send High and Low prices when user writes /hilo
 bot.onText(/\/hilo/, async (msg) => {
   const { max, min } = await getBitcoinPrices();
-  bot.sendMessage(msg.chat.id, `máximo diario de ฿: $${max}\n🐻 mínimo diario de ฿: $${min}`);
+  bot.sendMessage(msg.chat.id, `máximo diario de ₿: $${max}\n🐻 mínimo diario de ₿: $${min}`);
 });
 
 // Welcome message constant
@@ -365,7 +365,7 @@ async function prodilloInterval() {
       
       // Send a message to all Telegram chats
       for (const chatId in telegramChats) {
-        await bot.sendMessage(chatId, `<pre>🏁 ¡LA RONDA A LLEGADO A SU FIN!\nMaximo de ฿ de esta ronda: $${bitcoinMax}\n------------------------------------------\n${formattedList}\n\nEl ganador es ${winnerName} 🏆</pre>`, { parse_mode: 'HTML' });
+        await bot.sendMessage(chatId, `<pre>🏁 ¡LA RONDA A LLEGADO A SU FIN!\nMaximo de ₿ de esta ronda: $${bitcoinMax}\n------------------------------------------\n${formattedList}\n\nEl ganador es ${winnerName} 🏆</pre>`, { parse_mode: 'HTML' });
       }
 
       // Read trofeillos.json file and store it in a global variable
@@ -482,7 +482,7 @@ bot.onText(/\/listilla/, async (msg) => {
         formattedList += `${user.padEnd(20, ' ')} | $${(predict.toString()).padStart(10, ' ')} | ${diff}\n`;
       }
     });
-    await bot.sendMessage(msg.chat.id, `<pre><b>LISTA DE PRODILLOS:</b>\n\nPrecio máximo de ฿ en esta ronda: $${bitcoinMax}\n-----------------------------------------------------\n${formattedList}\n\n🟧⛏️ Tiempo restante para mandar prodillos: ${isProdilleabe ? prodilleableDeadline : 0} bloques\n🏁 Tiempo restante para saber ganador: ${winnerDeadline} bloques</pre>`, { parse_mode: 'HTML' });
+    await bot.sendMessage(msg.chat.id, `<pre><b>LISTA DE PRODILLOS:</b>\n\nPrecio máximo de ₿ en esta ronda: $${bitcoinMax}\n-----------------------------------------------------\n${formattedList}\n\n🟧⛏️ Tiempo restante para mandar prodillos: ${isProdilleabe ? prodilleableDeadline : 0} bloques\n🏁 Tiempo restante para saber ganador: ${winnerDeadline} bloques</pre>`, { parse_mode: 'HTML' });
   } catch (error) {
     console.error('Error en /listilla');
     await bot.sendMessage(msg.chat.id, 'No se pudo obtener la lista de prodillos.');
