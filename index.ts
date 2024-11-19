@@ -27,8 +27,6 @@ const BITCOIN_FILE = path.join(__dirname, 'bitcoin.json');
 const TROFEILLOS_FILE = path.join(__dirname, 'trofeillos.json');
 // Set time interval for automatic bot updates
 const TIME_INTERVAL = 1000*210;
-// Set time interval for Bitcoin price tracking
-const PRICE_TIME_INTERVAL = 1000*2.1;
 // Set time interval for prodillo game
 const PRODILLO_TIME_INTERVAL = 1000*21;
 // Discord bot token
@@ -94,7 +92,7 @@ async function deadline() {
     lastDeadline = {
       latestHeight: latestHeight,
       winnerDeadline: 2015 - latestHeight % 2016, // 2016 is the Bitcoin difficulty adjustment
-      prodilleableDeadline: (2015 - latestHeight % 2016) - 420, // prodillos can be submitted 420 blocks before the difficulty adjustment
+      prodilleableDeadline: (2015 - latestHeight % 2016) - 690, // prodillos can be submitted 690 blocks before the difficulty adjustment
     };
     return lastDeadline;
   } catch (error) {
