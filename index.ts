@@ -134,7 +134,7 @@ async function trackBitcoinPrice() {
         // Sends ATH message to all Telegram and Discord chats
         Object.keys(telegramChats).forEach(chatId => bot.sendMessage(Number(chatId),`NUEVO ATH DE ₿: $${bitcoinATH}`));
         Object.values(discordChannels).forEach(channel => channel.send(`NUEVO ATH DE ₿: $${bitcoinATH}`));
-      } else if (max > lastReportedMax) {
+      } else if (max > lastReportedMax && max < bitcoinATH) {
         // If price is higher than reported max...
         lastReportedMax = max;
 
