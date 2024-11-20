@@ -122,30 +122,30 @@ async function trackBitcoinPrice() {
   while (true) {
     try {
       const { min, max } = await getBitcoinPrices();
-      // If price is higher than reported max...
-      if (max > lastReportedMax) {
-        lastReportedMax = max;
+      // If price is higher than ATH...
+      if (max > bitcoinATH) {
+        bitcoinATH = max;
         
+        // Load bitcoin.json file and update bitcoinATH
+        const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf-8'));
+        data.bitcoinATH = max;
+        await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
+
+        // Sends ATH message to all Telegram and Discord chats
+        Object.keys(telegramChats).forEach(chatId => bot.sendMessage(Number(chatId),`NUEVO ATH DE ₿: $${bitcoinATH}`));
+        Object.values(discordChannels).forEach(channel => channel.send(`NUEVO ATH DE ₿: $${bitcoinATH}`));
+      } else if (max > lastReportedMax) {
+        // If price is higher than reported max...
+        lastReportedMax = max;
+
         // Load bitcoin.json file and update lastReportedMax
         const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf-8'));
-        data.lastReportedMax = lastReportedMax;
+        data.lastReportedMax = max;
         await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
         
-        // If price is higher than ATH, report it and update ATH record
-        if (lastReportedMax > bitcoinATH) {
-          data.bitcoinATH = lastReportedMax
-          bitcoinATH = lastReportedMax
-          await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
-          console.log(`BITCOIN ATH: ${bitcoinATH}`)
-          
-          // Sends ATH message to all Telegram and Discord chats
-          Object.keys(telegramChats).forEach(chatId => bot.sendMessage(Number(chatId),`NUEVO ATH DE ₿: $${bitcoinATH}`));
-          Object.values(discordChannels).forEach(channel => channel.send(`NUEVO ATH DE ₿: $${bitcoinATH}`));
-        } else {  
-          // OR sends daily high message to all Telegram and Discord chats
-          Object.keys(telegramChats).forEach(chatId => bot.sendMessage(Number(chatId),`nuevo máximo diario de ₿: $${lastReportedMax}`));
-          Object.values(discordChannels).forEach(channel => channel.send(`nuevo máximo diario de ₿: $${lastReportedMax}`));
-        }
+        // And sends daily high message to all Telegram and Discord chats
+        Object.keys(telegramChats).forEach(chatId => bot.sendMessage(Number(chatId),`nuevo máximo diario de ₿: $${lastReportedMax}`));
+        Object.values(discordChannels).forEach(channel => channel.send(`nuevo máximo diario de ₿: $${lastReportedMax}`));
       }
       // If price is lower than reported min...
       if (min < lastReportedMin) {
