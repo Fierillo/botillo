@@ -73,15 +73,18 @@ try {
 }
 
 // Restores Bitcoin prices from bitcoin.json file
-try {
-  const data = JSON.parse(fs.readFileSync(BITCOIN_FILE, 'utf-8'));
-  lastReportedMax = data.lastReportedMax;
-  lastReportedMin = data.lastReportedMin;
-  bitcoinMax = data.bitcoinMax;
-  bitcoinATH = data.bitcoinATH;
-  bitcoinMaxBlock = data.bitcoinMaxBlock;
-} catch (e) {
-  console.warn('No se pudo leer el archivo bitcoin.json\nSe iniciará uno nuevo.');
+async function initialValues() {
+  try {
+    const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf-8'));
+    lastReportedMax = data.lastReportedMax;
+    lastReportedMin = data.lastReportedMin;
+    bitcoinMax = data.bitcoinMax;
+    bitcoinATH = data.bitcoinATH;
+    bitcoinMaxBlock = data.bitcoinMaxBlock;
+    console.log('Initial values with bitcoin.json updated successfully:', data);
+  } catch (e) {
+    console.warn('Could not read bitcoin.json file, using default values');
+  }
 }
 
 // Initialize starting deadline for Prodillo game, next Bitcoin difficulty adjustment using mempool API
@@ -96,7 +99,7 @@ async function deadline() {
     };
     return lastDeadline;
   } catch (error) {
-    console.error('Error en deadline()');
+    console.error('deadline() error');
     return lastDeadline;
   };
 }
@@ -112,7 +115,7 @@ async function getBitcoinPrices () {
     }
     return lastPrices;
   } catch (error) {
-    console.error('Error en getBitcoinPrices()');
+    console.error('getBitcoinPrices() error');
     return lastPrices;
   }
 };
@@ -127,9 +130,14 @@ async function trackBitcoinPrice() {
         bitcoinATH = max;
         
         // Load bitcoin.json file and update bitcoinATH
-        const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf-8'));
-        data.bitcoinATH = max;
-        await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
+        try {
+          const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf8'));
+            data.bitcoinATH = bitcoinATH;
+            await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
+            console.log('bitcoinATH updated successfully:', data.bitcoinATH);
+        } catch (err) {
+            console.error('Failed to save ATH value in bitcoin.json');
+        }
 
         // Sends ATH message to all Telegram and Discord chats
         Object.keys(telegramChats).forEach(chatId => bot.sendMessage(Number(chatId),`NUEVO ATH DE ₿: $${bitcoinATH}`));
@@ -139,9 +147,14 @@ async function trackBitcoinPrice() {
         lastReportedMax = max;
 
         // Load bitcoin.json file and update lastReportedMax
-        const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf-8'));
-        data.lastReportedMax = max;
-        await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
+        try {
+          const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf8'));
+            data.lastReportedMax = lastReportedMax;
+            await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
+            console.log('lastReportedMax updated successfully:', data.lastReportedMax);
+        } catch (err) {
+            console.error('Failed to save lastReportedMax in bitcoin.json');
+        }
         
         // And sends daily high message to all Telegram and Discord chats
         Object.keys(telegramChats).forEach(chatId => bot.sendMessage(Number(chatId),`nuevo máximo diario de ₿: $${lastReportedMax}`));
@@ -152,16 +165,21 @@ async function trackBitcoinPrice() {
         lastReportedMin = min;
         
         // Load bitcoin.json file and update lastReportedMin
-        const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf8'));
-        data.lastReportedMin = lastReportedMin;
-        await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
+        try {
+          const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf8'));
+            data.lastReportedMin = lastReportedMin;
+            await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
+            console.log('lastReportedMin updated successfully:', data.lastReportedMin);
+        } catch (err) {
+            console.error('Failed to save lastReportedMin in bitcoin.json');
+        }
         
         // Sends daily low message to all Telegram and Discord chats
         Object.keys(telegramChats).forEach(chatId => bot.sendMessage(Number(chatId),`🐻 nuevo mínimo diario de ₿: $${lastReportedMin}`));
         Object.values(discordChannels).forEach(channel => channel.send(`🐻 nuevo mínimo diario de ₿: $${lastReportedMin}`));
       }
     } catch (error) {
-      console.error('Error en trackBitcoinPrice()');
+      console.error('trackBitcoinPrice() error');
     }
     await new Promise(resolve => setTimeout(resolve, TIME_INTERVAL));
   }
@@ -214,9 +232,10 @@ client.on('ready', () => {
     });
   });
   // Starts main functions
-  setTimeout(trackBitcoinPrice, 2100);
-  setTimeout(prodilloInterval, 2100);
-  setTimeout(seViene, 2100);
+  setTimeout(initialValues, 2100);
+  setTimeout(trackBitcoinPrice, 4200);
+  setTimeout(prodilloInterval, 6900);
+  setTimeout(seViene, 21000);
 });
 
 // Send Bitcoin price when user writes /precio, and max/min BTC price when user writes /hilo
@@ -340,7 +359,7 @@ async function prodilloInterval() {
         data.bitcoinMaxBlock = bitcoinMaxBlock;
         await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
       } catch (err) {
-        console.error('Failed to save the maximum Bitcoin price');
+        console.error('Failed to save bitcoinMax/bitcoinMaxBlock in bitcoin.json');
       }
     }
     
@@ -371,8 +390,9 @@ async function prodilloInterval() {
       // Read trofeillos.json file and store it in a global variable
       try {
       trofeillos = JSON.parse(fs.readFileSync('trofeillos.json', 'utf-8'));
+      console.log('trofeillos.json file read successfully');
       } catch (error) {
-      console.log('No se pudo leer el archivo de trofeillos.');
+      console.log('Could not read trofeillos.json file');
       }
 
       // Add the new trophy to winner
@@ -392,13 +412,27 @@ async function prodilloInterval() {
       bitcoinMax = 0;
       
       // Wipe bitcoin.json file
-      fs.writeFileSync(BITCOIN_FILE, JSON.stringify({}, null, 2));
+      try {
+        fs.writeFileSync(BITCOIN_FILE, JSON.stringify({}, null, 2));
+        console.log('bitcoin.json file wiped successfully');
+      } catch (err) {
+        console.error('Failed to wipe bitcoin.json file');
+      }
       
       // Wipe prodillo.json file
-      fs.writeFileSync(PRODILLO_FILE, JSON.stringify({}, null, 2));
+      try {
+        fs.writeFileSync(PRODILLO_FILE, JSON.stringify({}, null, 2));
+        console.log('prodillo.json file wiped successfully');
+      } catch (err) {
+        console.error('Failed to wipe prodillo.json file');
+      }
       
-      // Write Hal Finney prediction as tribute
-      fs.writeFileSync(PRODILLO_FILE, JSON.stringify({'0': {user: 'Hal Finney', predict: 10000000}}, null, 2));
+      try {
+        fs.writeFileSync(PRODILLO_FILE, JSON.stringify({'0': {user: 'Hal Finney', predict: 10000000}}, null, 2));
+        console.log('Hal Finney prediction added to prodillo.json file');
+      } catch (err) {
+        console.error('Failed to add Hal Finney prediction to prodillo.json file');
+      }
       
       // Prevents that win event is triggered again for a while
       isWon = true
@@ -484,7 +518,7 @@ bot.onText(/\/listilla/, async (msg) => {
     });
     await bot.sendMessage(msg.chat.id, `<pre><b>LISTA DE PRODILLOS:</b>\n\nPrecio máximo de ₿ en esta ronda: $${bitcoinMax}\n-----------------------------------------------------\n${formattedList}\n\n🟧⛏️ Tiempo restante para mandar prodillos: ${isProdilleabe ? prodilleableDeadline : 0} bloques\n🏁 Tiempo restante para saber ganador: ${winnerDeadline} bloques</pre>`, { parse_mode: 'HTML' });
   } catch (error) {
-    console.error('Error en /listilla');
+    console.error('Could not get the list of prodillos');
     await bot.sendMessage(msg.chat.id, 'No se pudo obtener la lista de prodillos.');
   }
 });
