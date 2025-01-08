@@ -227,7 +227,6 @@ client.on('ready', () => {
       if (channel.isTextBased() && channel instanceof TextChannel) {
         discordChannels[channel.id] = channel;
         console.log(`Discord channel: ${guild.name} [${channel.id}]`);
-        channel.send(`¡Hola mundillo!\nmáximo diario de ₿: $${lastReportedMax}\n🐻 mínimo diario de ₿: $${lastReportedMin}`);
       }
     });
   });
