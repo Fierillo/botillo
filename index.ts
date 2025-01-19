@@ -244,7 +244,7 @@ client.on('messageCreate', async (message: { content: string; channel: TextChann
     (message.channel as TextChannel).send(`precio de ₿: $${price}`);
   } else if (message.content === '/hilo') {
     const { max, min } = await getBitcoinPrices();
-    (message.channel as TextChannel).send(`máximo diario de ₿: $${max}\n🐻 mínimo diario de ₿: $${min}`);
+    (message.channel as TextChannel).send(`máximo diario de ₿: $${max}\n🐻 mínimo diario de ₿: $${min}\nATH de ₿: $${bitcoinATH}`);
 }});
 
 // Bot says GM every day at 8am (UTC-3)
