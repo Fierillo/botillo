@@ -248,7 +248,7 @@ client.on('ready', () => {
 client.on('messageCreate', async (message: { content: string; channel: TextChannel; }) => {
   if (message.content === '/precio') {
     const { price } = await getBitcoinPrices();
-    (message.channel as TextChannel).send(`precio de ₿: $${price} (${100*(price/bitcoinATH)}% hasta el ATH)`);
+    (message.channel as TextChannel).send(`precio de ₿: $${price} (${(100*(price/bitcoinATH)).toFixed(1)}% hasta el ATH)`);
   } else if (message.content === '/hilo') {
     const { max, min } = await getBitcoinPrices();
     (message.channel as TextChannel).send(`máximo diario de ₿: $${max}\n🐻 mínimo diario de ₿: $${min}\nATH de ₿: $${bitcoinATH}`);
@@ -278,7 +278,7 @@ bot.on('message', (msg) => {
 // Send Bitcoin price when user writes /precio
 bot.onText(/\/precio/, async (msg) => {
   const { price } = await getBitcoinPrices();
-  bot.sendMessage(msg.chat.id, `precio actual de ₿: $${price} (${100*(price/bitcoinATH)}% hasta el ATH)`);
+  bot.sendMessage(msg.chat.id, `precio actual de ₿: $${price} (${(100*(price/bitcoinATH)).toFixed(1)}% hasta el ATH)`);
 });
 
 // Send High and Low prices when user writes /hilo
