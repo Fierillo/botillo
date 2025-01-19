@@ -277,7 +277,7 @@ bot.onText(/\/precio/, async (msg) => {
 // Send High and Low prices when user writes /hilo
 bot.onText(/\/hilo/, async (msg) => {
   const { max, min } = await getBitcoinPrices();
-  bot.sendMessage(msg.chat.id, `máximo diario de ₿: $${max}\n🐻 mínimo diario de ₿: $${min}`);
+  bot.sendMessage(msg.chat.id, `máximo diario de ₿: $${max}\n🐻 mínimo diario de ₿: $${min}\nATH de ₿: $${bitcoinATH}`);
 });
 
 // Welcome message constant
