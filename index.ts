@@ -53,6 +53,13 @@ let isProdilleabe: boolean = false;
 let bitcoinMax: number = 0;
 let bitcoinMaxBlock: number = 0;
 let bitcoinATH: number = 73757;
+let bitcoinPrices = {
+  lastReportedMax: lastReportedMax,
+  lastReportedMin: lastReportedMin,
+  bitcoinMax: bitcoinMax,
+  bitcoinMaxBlock: bitcoinMaxBlock,
+  bitcoinATH: bitcoinATH
+};
 let isTest: boolean = false;
 let isWin: boolean = false;
 let isWon: boolean = false;
@@ -75,13 +82,13 @@ try {
 // Restores Bitcoin prices from bitcoin.json file
 async function initialValues() {
   try {
-    const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf-8'));
-    lastReportedMax = data.lastReportedMax;
-    lastReportedMin = data.lastReportedMin;
-    bitcoinMax = data.bitcoinMax;
-    bitcoinATH = data.bitcoinATH;
-    bitcoinMaxBlock = data.bitcoinMaxBlock;
-    console.log('Initial values with bitcoin.json updated successfully:', data);
+    bitcoinPrices = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf-8'));
+    lastReportedMax = bitcoinPrices.lastReportedMax;
+    lastReportedMin = bitcoinPrices.lastReportedMin;
+    bitcoinMax = bitcoinPrices.bitcoinMax;
+    bitcoinATH = bitcoinPrices.bitcoinATH;
+    bitcoinMaxBlock = bitcoinPrices.bitcoinMaxBlock;
+    console.log('Initial values with bitcoin.json updated successfully:', bitcoinPrices);
   } catch (e) {
     console.warn('Could not read bitcoin.json file, using default values');
   }
