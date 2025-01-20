@@ -248,10 +248,10 @@ client.on('ready', () => {
 client.on('messageCreate', async (message: { content: string; channel: TextChannel; }) => {
   if (message.content === '/precio') {
     const { price } = await getBitcoinPrices();
-    (message.channel as TextChannel).send(`precio de ₿: $${price} (${(100*(price/bitcoinATH)).toFixed(1)}% hasta el ATH)`);
+    (message.channel as TextChannel).send(`precio de ₿: $${price} (${(100*(price/bitcoinATH)).toFixed(1)}% del ATH)`);
   } else if (message.content === '/hilo') {
     const { price, max, min } = await getBitcoinPrices();
-    (message.channel as TextChannel).send(`máximo diario de ₿: $${max} (${(100*(price/bitcoinATH)).toFixed(1)}% hasta el ATH)\n🐻 mínimo diario de ₿: $${min}\n🔺 Volatilidad diaria: $${max-min} (${(100*(max/min)-100).toFixed(1)}%)\nATH de ₿: $${bitcoinATH}`);
+    (message.channel as TextChannel).send(`📈 máximo diario de ₿: $${max} (${(100*(price/bitcoinATH)).toFixed(1)}% del ATH)\n🐻 mínimo diario de ₿: $${min}\n🔺 Volatilidad diaria: $${max-min} (${(100*(max/min)-100).toFixed(1)}%)\n🚀 ATH de ₿: $${bitcoinATH}`);
 }});
 
 // Bot says GM every day at 8am (UTC-3)
@@ -278,13 +278,13 @@ bot.on('message', (msg) => {
 // Send Bitcoin price when user writes /precio
 bot.onText(/\/precio/, async (msg) => {
   const { price } = await getBitcoinPrices();
-  bot.sendMessage(msg.chat.id, `precio actual de ₿: $${price} (${(100*(price/bitcoinATH)).toFixed(1)}% hasta el ATH)`);
+  bot.sendMessage(msg.chat.id, `precio actual de ₿: $${price} (${(100*(price/bitcoinATH)).toFixed(1)}% del ATH)`);
 });
 
 // Send High and Low prices when user writes /hilo
 bot.onText(/\/hilo/, async (msg) => {
   const { price, max, min } = await getBitcoinPrices();
-  bot.sendMessage(msg.chat.id, `máximo diario de ₿: $${max} (${(100*(price/bitcoinATH)).toFixed(1)}% hasta el ATH)\n🐻 mínimo diario de ₿: $${min}\n🔺 Volatilidad diaria: $${max-min} (${(100*(max/min)-100).toFixed(1)}%)\nATH de ₿: $${bitcoinATH}`);
+  bot.sendMessage(msg.chat.id, `📈 máximo diario de ₿: $${max} (${(100*(price/bitcoinATH)).toFixed(1)}% del ATH)\n🐻 mínimo diario de ₿: $${min}\n🔺 Volatilidad diaria: $${max-min} (${(100*(max/min)-100).toFixed(1)}%)\n🚀 ATH de ₿: $${bitcoinATH}`);
 });
 
 // Welcome message constant
