@@ -54,11 +54,11 @@ let bitcoinMax: number = 0;
 let bitcoinMaxBlock: number = 0;
 let bitcoinATH: number = 73757;
 let bitcoinPrices = {
+  bitcoinATH: bitcoinATH,
   lastReportedMax: lastReportedMax,
   lastReportedMin: lastReportedMin,
   bitcoinMax: bitcoinMax,
   bitcoinMaxBlock: bitcoinMaxBlock,
-  bitcoinATH: bitcoinATH
 };
 let isTest: boolean = false;
 let isWin: boolean = false;
@@ -80,7 +80,7 @@ try {
 }
 
 // Restores Bitcoin prices from bitcoin.json file
-async function initialValues() {
+async function loadValues() {
   try {
     bitcoinPrices = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf-8'));
     lastReportedMax = bitcoinPrices.lastReportedMax;
@@ -238,7 +238,7 @@ client.on('ready', () => {
     });
   });
   // Starts main functions
-  setTimeout(initialValues, 2100);
+  setTimeout(loadValues, 2100);
   setTimeout(trackBitcoinPrice, 4200);
   setTimeout(prodilloInterval, 6900);
   setTimeout(seViene, 21000);
