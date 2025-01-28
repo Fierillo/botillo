@@ -276,13 +276,13 @@ bot.on('message', (msg) => {
 });
 
 // Send Bitcoin price when user writes /precio
-bot.onText(/\/precio/, async (msg) => {
+bot.onText(/\/precio(\s|\@botillo21_bot\s)(\d+)/, async (msg) => {
   const { price } = await getBitcoinPrices();
   bot.sendMessage(msg.chat.id, `precio actual de ₿: $${price} (${(100*(price/bitcoinATH)).toFixed(1)}% del ATH)`);
 });
 
 // Send High and Low prices when user writes /hilo
-bot.onText(/\/hilo/, async (msg) => {
+bot.onText(/\/hilo(\s|\@botillo21_bot\s)(\d+)/, async (msg) => {
   const { max, min } = await getBitcoinPrices();
   bot.sendMessage(msg.chat.id, `📈 máximo diario de ₿: $${max} (${(100*(max/bitcoinATH)).toFixed(1)}% del ATH)\n🐻 mínimo diario de ₿: $${min}\n🔺 Volatilidad diaria: $${max-min} (${(100*(max/min)-100).toFixed(1)}%)\n🚀 ATH de ₿: $${bitcoinATH}`);
 });
