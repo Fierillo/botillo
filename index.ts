@@ -276,15 +276,25 @@ bot.on('message', (msg) => {
 });
 
 // Send Bitcoin price when user writes /precio
-bot.onText(/\/precio(\s|\@botillo21_bot\s)(\d+)/, async (msg) => {
-  const { price } = await getBitcoinPrices();
-  bot.sendMessage(msg.chat.id, `precio actual de ₿: $${price} (${(100*(price/bitcoinATH)).toFixed(1)}% del ATH)`);
+bot.onText(/\/precio(@botillo21_bot)?/, async (msg) => {
+  try {
+    const { price } = await getBitcoinPrices();
+    bot.sendMessage(msg.chat.id, `Precio actual de ₿: $${price} (${(100*(price/bitcoinATH)).toFixed(1)}% del ATH)`);
+  } catch (error) {
+    bot.sendMessage(msg.chat.id, 'Lo siento, hubo un error al obtener el precio de Bitcoin.');
+    console.error('Error obteniendo el precio de Bitcoin');
+  }
 });
 
 // Send High and Low prices when user writes /hilo
-bot.onText(/\/hilo(\s|\@botillo21_bot\s)(\d+)/, async (msg) => {
-  const { max, min } = await getBitcoinPrices();
-  bot.sendMessage(msg.chat.id, `📈 máximo diario de ₿: $${max} (${(100*(max/bitcoinATH)).toFixed(1)}% del ATH)\n🐻 mínimo diario de ₿: $${min}\n🔺 Volatilidad diaria: $${max-min} (${(100*(max/min)-100).toFixed(1)}%)\n🚀 ATH de ₿: $${bitcoinATH}`);
+bot.onText(/\/hilo(@botillo21_bot)?/, async (msg) => {
+  try {  
+    const { max, min } = await getBitcoinPrices();
+    bot.sendMessage(msg.chat.id, `📈 máximo diario de ₿: $${max} (${(100*(max/bitcoinATH)).toFixed(1)}% del ATH)\n🐻 mínimo diario de ₿: $${min}\n🔺 Volatilidad diaria: $${max-min} (${(100*(max/min)-100).toFixed(1)}%)\n🚀 ATH de ₿: $${bitcoinATH}`);
+  } catch (error) {
+    bot.sendMessage(msg.chat.id, 'Lo siento, hubo un error al obtener el precio de Bitcoin.');
+    console.error('Error obteniendo el precio de Bitcoin');
+  }
 });
 
 // Welcome message constant
