@@ -7,8 +7,6 @@ const schedule = require('node-schedule');
 import TelegramBot from 'node-telegram-bot-api';
 const fs = require('fs');
 const path = require('path');
-import { createInvoice } from "ln-service";
-import { credentials } from "@grpc/grpc-js";
 
 // Load environment variables from .env file
 config();
@@ -568,15 +566,8 @@ bot.onText(/\/donacionsilla(\s|\@botillo21_bot\s)(.+)/, async (msg, match) => {
   if (userId && user && !isNaN(amount) && amount >= 0 && isFinite(amount)) {
     try {
       // Create LND invoice
-      const invoice = await createInvoice({
-          lnd: {
-              authenticated: credentials.createSsl(Buffer.from(fs.readFileSync(process.env.LND_CERTIFICATE), 'hex')),
-              macaroon: process.env.LND_MACAROON,
-              socket: process.env.LND_SOCKET,
-          },
-          tokens: amount,
-          description: `Donación de ${amount} satoshis`,
-      });
+      const invoice = await createInvoiceREST(amount, `Donación de ${amount} satoshis`);
+      
       console.error(`🍾 ¡El usuario ${user} [${userId}] dono ${amount} satoshis!`);
       await bot.sendMessage(chatId, `🍾 ¡Gracias por tu donación loko/a! 🙏\n\nInvoice: ${invoice.request}`);
     } catch (error) {
