@@ -560,27 +560,29 @@ bot.onText(/\/trofeillos/, (msg) => {
 // Manejar el comando /donacion
 bot.onText(/\/donacionsilla (\d+)/, async (msg, match) => {
   const chatId = msg.chat.id;
-  const amountStr = (match as RegExpMatchArray)[0];
+  const userId = msg.from?.id;
+  const user = msg.from?.username;
+  const amountStr = (match as RegExpMatchArray)[2];
   const amount = Math.round(Number(amountStr));
 
-  if (amount === null || isNaN(amount) || amount <= 0) {
-    return bot.sendMessage(chatId, 'Por favor especifica un monto. Ejemplo: /donacionsilla 21');
-  }
-
-  try {
-    // Crear el invoice en LND
-    const invoice = await createInvoice({
-        lnd: {
-            authenticated: credentials.createSsl(Buffer.from(fs.readFileSync(process.env.LND_CERTIFICATE), 'hex')),
-            macaroon: process.env.LND_MACAROON,
-            socket: process.env.LND_SOCKET,
-        },
-        tokens: amount,
-        description: `Donación de ${amount} satoshis`,
-    });
-    bot.sendMessage(chatId, `🍾 ¡Gracias por tu donación loko/a! 🙏\n\nInvoice: ${invoice.request}`);
-  } catch (error) {
-    console.error('Error en /donacionsilla', error);
-    bot.sendMessage(chatId, '❌ Lo siento, hubo un error al generar el invoice.');
+  if (userId && user && !isNaN(amount) && amount >= 0 && isFinite(amount)) {
+    try {
+      // Create LND invoice
+      const invoice = await createInvoice({
+          lnd: {
+              authenticated: credentials.createSsl(Buffer.from(fs.readFileSync(process.env.LND_CERTIFICATE), 'hex')),
+              macaroon: process.env.LND_MACAROON,
+              socket: process.env.LND_SOCKET,
+          },
+          tokens: amount,
+          description: `Donación de ${amount} satoshis`,
+      });
+      bot.sendMessage(chatId, `🍾 ¡Gracias por tu donación loko/a! 🙏\n\nInvoice: ${invoice.request}`);
+    } catch (error) {
+      console.error('Error en /donacionsilla', error);
+      bot.sendMessage(chatId, '❌ Lo siento, hubo un error al generar el invoice.');
+    }
+  } else {
+    bot.sendMessage(chatId, '❌ ¡Ingresaste cualquier cosa loko!\n\n/donacionsilla <monto en satoshis>');
   }
 });
