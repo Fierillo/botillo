@@ -7,24 +7,25 @@ const https = require('https');
 export async function createInvoiceREST (amount: number, description: string) {
   const lndRestHost = process.env.LND_REST_HOST || 'localhost:8080'; // Asegúrate de establecer correctamente este valor
   const cert = fs.readFileSync(process.env.LND_TLS_CERT_PATH); // Ruta al certificado TLS de LND
-  const macaroon = fs.readFileSync(process.env.LND_MACAROON).toString('hex');
+  const macaroon = process.env.LND_MACAROON;
 
   try {
     const agent = new https.Agent({
-      rejectUnauthorized: false, // Esto deshabilita la verificación de certificados, solo para desarrollo
-      ca: [cert]
+        rejectUnauthorized: false,
+        ca: [cert]
     });
 
     const response = await fetch(`https://${lndRestHost}/v1/invoices`, {
       method: 'POST',
       headers: {
-        'Grpc-Metadata-macaroon': macaroon,
+        'Grpc-Metadata-macaroon': macaroon ?? '',
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         value: amount,
         memo: description
       }),
+      agent
     });
 
     if (!response.ok) {
