@@ -1,5 +1,5 @@
 {
-  "name": "Botillo",
+  "name": "botillo",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -11,12 +11,14 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@grpc/grpc-js": "^1.12.5",
     "@types/node-telegram-bot-api": "^0.64.7",
     "axios": "^1.7.7",
     "body-parser": "^1.20.3",
     "discord.js": "^14.16.2",
     "dotenv": "^16.4.5",
     "express": "^4.21.0",
+    "ln-service": "^57.23.0",
     "node-schedule": "^2.1.1",
     "node-telegram-bot-api": "^0.66.0"
   },
