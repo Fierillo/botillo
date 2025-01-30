@@ -7,6 +7,7 @@ const schedule = require('node-schedule');
 import TelegramBot from 'node-telegram-bot-api';
 const fs = require('fs');
 const path = require('path');
+import { createInvoiceREST } from './src/modules/donacionsilla';
 
 // Load environment variables from .env file
 config();

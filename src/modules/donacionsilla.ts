@@ -1,10 +1,10 @@
 // import dependencies
-const fetch2 = require('node-fetch');
+const fetch = require('node-fetch');
 const fs = require('fs');
 const https = require('https');
 
 // defines invoice function that uses LND REST API
-async function createInvoiceREST(amount: number, description: string) {
+export async function createInvoiceREST (amount: number, description: string) {
   const lndRestHost = process.env.LND_REST_HOST || 'localhost:8080'; // Asegúrate de establecer correctamente este valor
   const cert = fs.readFileSync(process.env.LND_TLS_CERT_PATH); // Ruta al certificado TLS de LND
   const macaroon = fs.readFileSync(process.env.LND_MACAROON).toString('hex');
