@@ -560,10 +560,10 @@ bot.onText(/\/trofeillos/, (msg) => {
 // Manejar el comando /donacion
 bot.onText(/\/donacionsilla (\d+)/, async (msg, match) => {
   const chatId = msg.chat.id;
-  const amountStr = (match as RegExpMatchArray)[1];
+  const amountStr = (match as RegExpMatchArray)[0];
   const amount = Math.round(Number(amountStr));
 
-  if (isNaN(amount) || amount <= 0) {
+  if (amount === null || isNaN(amount) || amount <= 0) {
     return bot.sendMessage(chatId, 'Por favor especifica un monto. Ejemplo: /donacionsilla 21');
   }
 
