@@ -26,8 +26,8 @@ const client = new Client({
 // LND configuration
 const lndConfig = {
   socket: 'localhost:10009', // Ej: localhost:10009
-  cert: '/home/bitcoin/.lnd/tls.cert', // Ruta a tu certificado TLS
-  macaroon: './macaroon', // Ruta a tu macaroon
+  cert: fs.readFileSync('/home/bitcoin/.lnd/tls.cert'), // Ruta a tu certificado TLS
+  macaroon: fs.readFileSync('./macaroon').toString('hex'), // Ruta a tu macaroon
 };
 
 // CONSTANTS
@@ -570,7 +570,7 @@ bot.onText(/\/donacionsilla (\d+)/, async (msg, match) => {
   const amount = match?.[1];
 
   if (!amount) {
-    return bot.sendMessage(chatId, 'Por favor especifica un monto. Ejemplo: /donacion 100');
+    return bot.sendMessage(chatId, 'Por favor especifica un monto. Ejemplo: /donacionsilla 21');
   }
 
   try {
@@ -589,7 +589,7 @@ bot.onText(/\/donacionsilla (\d+)/, async (msg, match) => {
     });
 
     // Enviar la factura al usuario
-    bot.sendMessage(chatId, `Gracias por tu donación! Por favor paga este invoice: \n\n${invoice.request}`);
+    bot.sendMessage(chatId, `¡Gracias por tu donación loko/a!\nPor favor paga este invoice:\n\n${invoice.request}`);
     
   } catch (error) {
     console.error(error);
