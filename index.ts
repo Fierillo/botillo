@@ -243,7 +243,7 @@ client.on('ready', () => {
   setTimeout(loadValues, 2100);
   setTimeout(trackBitcoinPrice, 4200);
   setTimeout(prodilloInterval, 6900);
-  setTimeout(seViene, 21000);
+  setTimeout(seViene, Math.random() * ((69 - 1)*3600*1000) + 1 * 3600*1000); // Interval between 1 and 69 hours
 });
 
 // Send Bitcoin price when user writes /precio, and max/min BTC price when user writes /hilo
@@ -560,9 +560,10 @@ bot.onText(/\/trofeillos/, (msg) => {
 // Manejar el comando /donacion
 bot.onText(/\/donacionsilla (\d+)/, async (msg, match) => {
   const chatId = msg.chat.id;
-  const amount = match?.[1];
+  const amount = (match as RegExpMatchArray)[2];
+  const amount2 = Math.round(Number(amount));
 
-  if (amount === null || amount === undefined || isNaN(Number(amount))) {
+  if (amount2 === null || amount2 === undefined || isNaN(Number(amount2))) {
     return bot.sendMessage(chatId, 'Por favor especifica un monto. Ejemplo: /donacionsilla 21');
   }
 
@@ -582,7 +583,7 @@ bot.onText(/\/donacionsilla (\d+)/, async (msg, match) => {
     });
     bot.sendMessage(chatId, `🍾 ¡Gracias por tu donación loko/a! 🙏\n\nInvoice: ${invoice.request}`);
   } catch (error) {
-    console.error('Error en /donacionsilla');
+    console.error('Error en /donacionsilla', error);
     bot.sendMessage(chatId, '❌ Lo siento, hubo un error al generar el invoice.');
   }
 });
