@@ -19,6 +19,7 @@
     "dotenv": "^16.4.5",
     "express": "^4.21.0",
     "ln-service": "^57.23.0",
+    "node-fetch": "^3.3.2",
     "node-schedule": "^2.1.1",
     "node-telegram-bot-api": "^0.66.0"
   },

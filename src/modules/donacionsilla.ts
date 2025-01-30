@@ -1,5 +1,5 @@
 // import dependencies
-import 'node-fetch';
+import fetch from 'node-fetch';
 const fs = require('fs');
 const https = require('https');
 
@@ -31,7 +31,12 @@ export async function createInvoiceREST (amount: number, description: string) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const data = await response.json();
+    interface InvoiceResponse {
+      payment_request: string;
+      r_hash: string;
+    }
+
+    const data: InvoiceResponse = await response.json() as InvoiceResponse;
     return {
       request: data.payment_request,
       id: data.r_hash,
