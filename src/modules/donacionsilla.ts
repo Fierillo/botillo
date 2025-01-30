@@ -1,5 +1,5 @@
 // import dependencies
-const fetch = require('node-fetch');
+import 'node-fetch';
 const fs = require('fs');
 const https = require('https');
 
