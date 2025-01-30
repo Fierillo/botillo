@@ -558,7 +558,7 @@ bot.onText(/\/trofeillos/, (msg) => {
 });
 
 // Manejar el comando /donacion
-bot.onText(/\/donacionsilla (\d+)/, async (msg, match) => {
+bot.onText(/\/donacionsilla(\s|\@botillo21_bot\s)(\d+)/, async (msg, match) => {
   const chatId = msg.chat.id;
   const userId = msg.from?.id;
   const user = msg.from?.username;
@@ -577,12 +577,13 @@ bot.onText(/\/donacionsilla (\d+)/, async (msg, match) => {
           tokens: amount,
           description: `Donación de ${amount} satoshis`,
       });
-      bot.sendMessage(chatId, `🍾 ¡Gracias por tu donación loko/a! 🙏\n\nInvoice: ${invoice.request}`);
+      console.error(`🍾 ¡El usuario ${userId} dono ${amount} satoshis!`);
+      await bot.sendMessage(chatId, `🍾 ¡Gracias por tu donación loko/a! 🙏\n\nInvoice: ${invoice.request}`);
     } catch (error) {
-      console.error('Error en /donacionsilla', error);
-      bot.sendMessage(chatId, '❌ Lo siento, hubo un error al generar el invoice.');
+      console.error(`❌ Error cuando el usuario ${userId} intento donar ${amount} satoshis`, error);
+      await bot.sendMessage(chatId, '❌ Lo siento, hubo un error al generar el invoice.');
     }
   } else {
-    bot.sendMessage(chatId, '❌ ¡Ingresaste cualquier cosa loko!\n\n/donacionsilla <monto en satoshis>');
+    await bot.sendMessage(chatId, '❌ ¡Ingresaste cualquier cosa loko!\n\n/donacionsilla <monto en satoshis>');
   }
 });
