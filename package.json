@@ -26,6 +26,7 @@
     "@types/body-parser": "^1.19.5",
     "@types/dotenv": "^8.2.0",
     "@types/express": "^5.0.0",
+    "@types/fs-extra": "^11.0.4",
     "@types/node": "^22.7.2",
     "@types/node-schedule": "^2.1.7",
     "cross-env": "^7.0.3",

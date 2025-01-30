@@ -7,7 +7,8 @@ const schedule = require('node-schedule');
 import TelegramBot from 'node-telegram-bot-api';
 const fs = require('fs');
 const path = require('path');
-import { donacionsilla } from "./modules/donacionsilla";
+import { createInvoice } from "ln-service";
+import { credentials } from "@grpc/grpc-js";
 
 // Load environment variables from .env file
 config();
@@ -21,13 +22,6 @@ const client = new Client({
     GatewayIntentBits.MessageContent
   ] 
 });
-
-// LND configuration
-const lndConfig = {
-  socket: 'localhost:10009', // Ej: localhost:10009
-  cert: fs.readFileSync('/home/bitcoin/.lnd/tls.cert'), // Ruta a tu certificado TLS
-  macaroon: fs.readFileSync('./macaroon').toString('hex'), // Ruta a tu macaroon
-};
 
 // CONSTANTS
 const PRODILLO_FILE = path.join(__dirname, 'prodillo.json');
@@ -568,18 +562,27 @@ bot.onText(/\/donacionsilla (\d+)/, async (msg, match) => {
   const chatId = msg.chat.id;
   const amount = match?.[1];
 
-  if (!amount) {
+  if (amount === null || amount === undefined || isNaN(Number(amount))) {
     return bot.sendMessage(chatId, 'Por favor especifica un monto. Ejemplo: /donacionsilla 21');
   }
 
   try {
-    const invoice = donacionsilla(amount)
+    // Convertir el monto a satoshis (asumiendo que el usuario introduce el monto en satoshis)
+    const satoshis = parseInt(amount);
 
-    // Enviar la factura al usuario
-    bot.sendMessage(chatId, `¡Gracias por tu donación loko/a!\nPor favor paga este invoice:\n\n${invoice}`);
-    
+    // Crear el invoice en LND
+    const invoice = await createInvoice({
+        lnd: {
+            authenticated: credentials.createSsl(Buffer.from(fs.readFileSync(process.env.LND_CERTIFICATE), 'hex')),
+            macaroon: process.env.LND_MACAROON,
+            socket: process.env.LND_SOCKET,
+        },
+        tokens: satoshis,
+        description: `Donación de ${satoshis} satoshis`,
+    });
+    bot.sendMessage(chatId, `🍾 ¡Gracias por tu donación loko/a! 🙏\n\nInvoice: ${invoice.request}`);
   } catch (error) {
-    console.error(error);
-    bot.sendMessage(chatId, '❌ Error al generar el invoice. Intenta nuevamente.');
+    console.error('Error en /donacionsilla');
+    bot.sendMessage(chatId, '❌ Lo siento, hubo un error al generar el invoice.');
   }
 });

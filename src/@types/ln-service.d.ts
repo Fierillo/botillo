@@ -9,6 +9,4 @@ declare module 'ln-service' {
       id: string;
       secret: string;
     }>;
-    
-    // Agrega aquí otras funciones que necesites
   }
