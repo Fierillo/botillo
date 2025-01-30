@@ -7,8 +7,7 @@ const schedule = require('node-schedule');
 import TelegramBot from 'node-telegram-bot-api';
 const fs = require('fs');
 const path = require('path');
-import { createInvoice } from 'ln-service';
-import { credentials } from '@grpc/grpc-js';
+import { donacionsilla } from "./modules/donacionsilla";
 
 // Load environment variables from .env file
 config();
@@ -574,22 +573,10 @@ bot.onText(/\/donacionsilla (\d+)/, async (msg, match) => {
   }
 
   try {
-    // Convertir el monto a satoshis (asumiendo que el usuario introduce el monto en satoshis)
-    const satoshis = parseInt(amount);
-
-    // Crear el invoice en LND
-    const invoice = await createInvoice({
-      lnd: {
-        authenticated: credentials.createSsl(Buffer.from(lndConfig.cert, 'hex')),
-        macaroon: lndConfig.macaroon,
-        socket: lndConfig.socket,
-      },
-      tokens: satoshis,
-      description: `Donación de ${satoshis} satoshis`,
-    });
+    const invoice = donacionsilla(amount)
 
     // Enviar la factura al usuario
-    bot.sendMessage(chatId, `¡Gracias por tu donación loko/a!\nPor favor paga este invoice:\n\n${invoice.request}`);
+    bot.sendMessage(chatId, `¡Gracias por tu donación loko/a!\nPor favor paga este invoice:\n\n${invoice}`);
     
   } catch (error) {
     console.error(error);
