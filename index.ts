@@ -560,17 +560,14 @@ bot.onText(/\/trofeillos/, (msg) => {
 // Manejar el comando /donacion
 bot.onText(/\/donacionsilla (\d+)/, async (msg, match) => {
   const chatId = msg.chat.id;
-  const amount = (match as RegExpMatchArray)[1];
-  const amount2 = Math.round(Number(amount));
+  const amountStr = (match as RegExpMatchArray)[1];
+  const amount = Math.round(Number(amountStr));
 
-  if (isNaN(amount2) || amount2 <= 0) {
+  if (isNaN(amount) || amount <= 0) {
     return bot.sendMessage(chatId, 'Por favor especifica un monto. Ejemplo: /donacionsilla 21');
   }
 
   try {
-    // Convertir el monto a satoshis (asumiendo que el usuario introduce el monto en satoshis)
-    const satoshis = parseInt(amount);
-
     // Crear el invoice en LND
     const invoice = await createInvoice({
         lnd: {
@@ -578,8 +575,8 @@ bot.onText(/\/donacionsilla (\d+)/, async (msg, match) => {
             macaroon: process.env.LND_MACAROON,
             socket: process.env.LND_SOCKET,
         },
-        tokens: satoshis,
-        description: `Donación de ${satoshis} satoshis`,
+        tokens: amount,
+        description: `Donación de ${amount} satoshis`,
     });
     bot.sendMessage(chatId, `🍾 ¡Gracias por tu donación loko/a! 🙏\n\nInvoice: ${invoice.request}`);
   } catch (error) {
