@@ -229,7 +229,7 @@ schedule.scheduleJob('0 21 * * *', async () => { // 21:00 at local time (UTC-3) 
 // Detects automatically the Discord server where the bot is, detects the first text-based channel, store it and send a message to it
 client.on('ready', () => {
   console.log(execSync('git log -1 --pretty=%B').toString().trim())
-  console.log(`${client.user?.tag} listo en Discord!`);
+  console.log(`${client.user?.tag} ready on Discord!`);
   client.guilds.cache.forEach((guild: { channels: { cache: any[]; }; name: any; }) => {
     guild.channels.cache.forEach(async (channel) => {
       if (channel.isTextBased() && channel instanceof TextChannel) {
@@ -272,7 +272,11 @@ bot.on('message', (msg) => {
   if (!telegramChats.hasOwnProperty(msg.chat.id)) {
     telegramChats[msg.chat.id] = true;
     console.log(`Added telegram chat: ${msg.chat.title || msg.chat.first_name} [${msg.chat.id}]`);
-    console.log(telegramChats)
+    // Mostrar la lista de todos los chats conocidos
+    console.log("Current Chats:");
+    for (const [id, name] of Object.entries(telegramChats)) {
+      console.log(`- ${name} [${id}]`);
+    }
   }
 });
 
@@ -283,7 +287,7 @@ bot.onText(/\/precio(@botillo21_bot)?/, async (msg) => {
     bot.sendMessage(msg.chat.id, `Precio actual de ₿: $${price} (${(100*(price/bitcoinATH)).toFixed(1)}% del ATH)`);
   } catch (error) {
     bot.sendMessage(msg.chat.id, 'Lo siento, hubo un error al obtener el precio de Bitcoin.');
-    console.error('Error obteniendo el precio de Bitcoin');
+    console.error('error in Telegram command /precio');
   }
 });
 
@@ -294,7 +298,7 @@ bot.onText(/\/hilo(@botillo21_bot)?/, async (msg) => {
     bot.sendMessage(msg.chat.id, `📈 máximo diario de ₿: $${max} (${(100*(max/bitcoinATH)).toFixed(1)}% del ATH)\n🐻 mínimo diario de ₿: $${min}\n🔺 Volatilidad diaria: $${max-min} (${(100*(max/min)-100).toFixed(1)}%)\n🚀 ATH de ₿: $${bitcoinATH}`);
   } catch (error) {
     bot.sendMessage(msg.chat.id, 'Lo siento, hubo un error al obtener el precio de Bitcoin.');
-    console.error('Error obteniendo el precio de Bitcoin');
+    console.error('error in Telegram command /hilo');
   }
 });
 
@@ -480,7 +484,7 @@ bot.onText(/\/prodillo(\s|\@botillo21_bot\s)(.+)/, async (msg, match) => {
       const fileContent = await fs.promises.readFile(PRODILLO_FILE, 'utf-8');
       prodillos = JSON.parse(fileContent);
     } catch (error) {
-      console.error('Error en /prodillo');
+      console.error('error in Telegram command /prodillo');
     }
 
     // Check if the prediction already exists
@@ -556,7 +560,7 @@ bot.onText(/\/trofeillos/, (msg) => {
   bot.sendMessage(msg.chat.id, `<pre><b>SALA DE TROFEILLOS</b>\n\nUltimo campeón: ${winnerName}\nCampeón: 🏆 [nro. de bloque]\n------------------------------------------------------------------------------${mensaje || 'No hay ganadores aún.'}</pre>`, { parse_mode: 'HTML' });
 });
 
-// Manejar el comando /donacion
+// Defines a function that creates an invoice for donations
 bot.onText(/\/donacionsilla(\s|\@botillo21_bot\s)(.+)/, async (msg, match) => {
   const chatId = msg.chat.id;
   const userId = msg.from?.id;
@@ -569,11 +573,11 @@ bot.onText(/\/donacionsilla(\s|\@botillo21_bot\s)(.+)/, async (msg, match) => {
       // Create LND invoice
       const invoice = await createInvoiceREST(amount, `Donación de ${amount} satoshis`);
       
-      console.error(`🍾 ¡El usuario ${user} [${userId}] dono ${amount} satoshis!`);
-      await bot.sendMessage(chatId, `🍾 ¡Gracias por tu donación loko/a! 🙏\n\nToma, paga aca: ${invoice.request}`);
+      console.log(`🟨 ¡User ${user} [${userId}] wants to donate ${amount} sats!`);
+      await bot.sendMessage(chatId, `🍾 ¡Gracias por querer donar ${amount} satoshis loko/a! 🙏\n\n¡Toma, paga aca!: ${invoice.request}`);
     } catch (error) {
-      console.error(`❌ Error cuando el usuario ${user} [${userId}] intento donar ${amount} satoshis`, error);
-      await bot.sendMessage(chatId, '❌ Lo siento, hubo un error al generar el invoice.');
+      console.error(`❌ error when ${user} [${userId}] tried to donate ${amount} sats`, error);
+      await bot.sendMessage(chatId, '❌ Lo siento loko, hubo un error al generar el invoice, proba devuelta');
     }
   } else {
     await bot.sendMessage(chatId, '❌ ¡Ingresaste cualquier cosa loko!\n\n/donacionsilla <monto en satoshis>');
