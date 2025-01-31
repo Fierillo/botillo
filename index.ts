@@ -575,7 +575,7 @@ bot.onText(/\/donacioncilla(\s|\@botillo21_bot\s)(.+)/, async (msg, match) => {
       const invoice = await createInvoiceREST(amount, `Donación de ${amount} satoshis`);
       
       console.log(`🟨 ¡User ${user} [${userId}] wants to donate ${amount} sats!`);
-      await bot.sendMessage(chatId, `🍾 ¡Gracias por querer donar ${amount} satoshis loko/a! 🙏\n\n¡Toma, paga aca!: ${invoice.request}`);
+      await bot.sendMessage(chatId, `🍾 ¡Gracias por querer donar ${amount} satoshi${amount > 1 ? 's' : ''} loko/a! 🙏\n\n¡Toma, paga aca!: ${invoice.request}`);
     } catch (error) {
       console.error(`❌ error when ${user} [${userId}] tried to donate ${amount} sats`, error);
       await bot.sendMessage(chatId, '❌ Lo siento loko, hubo un error al generar el invoice, proba devuelta');
