@@ -7,7 +7,7 @@ const schedule = require('node-schedule');
 import TelegramBot from 'node-telegram-bot-api';
 const fs = require('fs');
 const path = require('path');
-import { createInvoiceREST } from './src/modules/donacionsilla';
+import { createInvoiceREST } from './src/modules/donacioncilla';
 
 // Load environment variables from .env file
 config();
@@ -47,7 +47,7 @@ const trofeillo = '🏆 ';
 // Define global variables
 let lastReportedMax: number = 0;
 let lastReportedMin: number = Infinity;
-let telegramChats: { [key: number]: boolean } = {};
+let telegramChats: { [key: number]: string } = {};
 let discordChannels: { [key: string]: TextChannel } = {};
 let prodillos: Record<string, { user: string; predict: number }>;
 let isProdilleabe: boolean = false;
@@ -270,9 +270,10 @@ schedule.scheduleJob('0 8 * * *', () => {
 // Stores the chats where the bot is
 bot.on('message', (msg) => {
   if (!telegramChats.hasOwnProperty(msg.chat.id)) {
-    telegramChats[msg.chat.id] = true;
+    telegramChats[msg.chat.id] = msg.chat.title || msg.chat.first_name || 'Unknown';
     console.log(`Added telegram chat: ${msg.chat.title || msg.chat.first_name} [${msg.chat.id}]`);
-    // Mostrar la lista de todos los chats conocidos
+    
+    // Shows all the Telegram chats where the bot is
     console.log("Current Chats:");
     for (const [id, name] of Object.entries(telegramChats)) {
       console.log(`- ${name} [${id}]`);
@@ -561,7 +562,7 @@ bot.onText(/\/trofeillos/, (msg) => {
 });
 
 // Defines a function that creates an invoice for donations
-bot.onText(/\/donacionsilla(\s|\@botillo21_bot\s)(.+)/, async (msg, match) => {
+bot.onText(/\/donacioncilla(\s|\@botillo21_bot\s)(.+)/, async (msg, match) => {
   const chatId = msg.chat.id;
   const userId = msg.from?.id;
   const user = msg.from?.username;
@@ -580,6 +581,6 @@ bot.onText(/\/donacionsilla(\s|\@botillo21_bot\s)(.+)/, async (msg, match) => {
       await bot.sendMessage(chatId, '❌ Lo siento loko, hubo un error al generar el invoice, proba devuelta');
     }
   } else {
-    await bot.sendMessage(chatId, '❌ ¡Ingresaste cualquier cosa loko!\n\n/donacionsilla <monto en satoshis>');
+    await bot.sendMessage(chatId, '❌ ¡Ingresaste cualquier cosa loko!\n\n/donacioncilla <monto en satoshis>');
   }
 });
