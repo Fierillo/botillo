@@ -74,10 +74,12 @@ let lastDeadline = {
 }
 
 // Restores prodillos from JSON file
-try {
-  prodillos = JSON.parse(fs.readFileSync(PRODILLO_FILE, 'utf-8'));
-} catch (e) {
-  console.warn('No se pudo leer el archivo prodillo.json\nSe iniciará uno nuevo.');
+async function loadProdillos() {
+  try {
+    prodillos = JSON.parse(await fs.promises.readFile(PRODILLO_FILE, 'utf-8'));
+  } catch (e) {
+    throw new Error(`CRITICAL ERROR: Couldn't read prodillo.json file`);
+  }
 }
 
 // Restores Bitcoin prices from bitcoin.json file
@@ -91,7 +93,7 @@ async function loadValues() {
     bitcoinMaxBlock = bitcoinPrices.bitcoinMaxBlock;
     console.log('Initial values with bitcoin.json updated successfully:', bitcoinPrices);
   } catch (e) {
-    console.warn('Could not read bitcoin.json file, using default values');
+    throw new Error(`CRITICAL ERROR: Couldn't read bitcoin.json file`);
   }
 }
 
@@ -252,6 +254,7 @@ client.on('ready', () => {
     });
   });
   // Starts main functions
+  setTimeout(loadProdillos, 420);
   setTimeout(loadValues, 2100);
   setTimeout(trackBitcoinPrice, 4200);
   setTimeout(prodilloInterval, 6900);
