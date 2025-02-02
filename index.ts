@@ -242,7 +242,7 @@ schedule.scheduleJob('0 21 * * *', async () => { // 21:00 at local time (UTC-3) 
 
 // STARTING EVENT
 // Detects automatically the Discord server where the bot is, detects the first text-based channel, store it and send a message to it
-client.on('ready', () => {
+client.on('ready', async () => {
   console.log(execSync('git log -1 --pretty=%B').toString().trim())
   console.log(`${client.user?.tag} ready on Discord!`);
   client.guilds.cache.forEach((guild: { channels: { cache: any[]; }; name: any; }) => {
@@ -254,10 +254,10 @@ client.on('ready', () => {
     });
   });
   // Starts main functions
-  setTimeout(loadProdillos, 420);
-  setTimeout(loadValues, 2100);
-  setTimeout(trackBitcoinPrice, 4200);
-  setTimeout(prodilloInterval, 6900);
+  await loadProdillos();
+  await loadValues();
+  await trackBitcoinPrice();
+  await prodilloInterval();
   setTimeout(seViene, Math.random() * ((69 - 1)*3600*1000) + 1 * 3600*1000); // Interval between 1 and 69 hours
 });
 
