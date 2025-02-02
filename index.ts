@@ -148,7 +148,7 @@ async function trackBitcoinPrice() {
         }
 
         // Sends ATH message to all Telegram and Discord chats
-        Object.keys(telegramChats).forEach(chatId => bot.sendMessage(Number(chatId),`NUEVO ATH DE ₿: $${bitcoinATH}`));
+        Object.keys(telegramChats).forEach(async chatId => (await hasSendPermission(chatId)) ? bot.sendMessage(Number(chatId),`NUEVO ATH DE ₿: $${bitcoinATH}`) : null);
         Object.values(discordChannels).forEach(channel => channel.send(`NUEVO ATH DE ₿: $${bitcoinATH}`));
       } else if (max > lastReportedMax && max < bitcoinATH) {
         // If price is higher than reported max...
@@ -165,7 +165,7 @@ async function trackBitcoinPrice() {
         }
         
         // And sends daily high message to all Telegram and Discord chats
-        Object.keys(telegramChats).forEach(chatId => bot.sendMessage(Number(chatId),`nuevo máximo diario de ₿: $${lastReportedMax}`));
+        Object.keys(telegramChats).forEach(async chatId => (await hasSendPermission(chatId)) ? bot.sendMessage(Number(chatId),`nuevo máximo diario de ₿: $${lastReportedMax}`) : null);
         Object.values(discordChannels).forEach(channel => channel.send(`nuevo máximo diario de ₿: $${lastReportedMax}`));
       }
       // If price is lower than reported min...
@@ -183,7 +183,7 @@ async function trackBitcoinPrice() {
         }
         
         // Sends daily low message to all Telegram and Discord chats
-        Object.keys(telegramChats).forEach(chatId => bot.sendMessage(Number(chatId),`🐻 nuevo mínimo diario de ₿: $${lastReportedMin}`));
+        Object.keys(telegramChats).forEach(async chatId => (await hasSendPermission(chatId)) ? bot.sendMessage(Number(chatId),`🐻 nuevo mínimo diario de ₿: $${lastReportedMin}`) : null);
         Object.values(discordChannels).forEach(channel => channel.send(`🐻 nuevo mínimo diario de ₿: $${lastReportedMin}`));
       }
     } catch (error) {
@@ -192,6 +192,19 @@ async function trackBitcoinPrice() {
     await new Promise(resolve => setTimeout(resolve, TIME_INTERVAL));
   }
 };
+
+// Function to check if bot has permission to send messages
+async function hasSendPermission(chatId: string) {
+  try {
+    const members = await bot.getChatAdministrators(chatId);
+    const botInfo = await bot.getMe();
+    const botMember = members.find(mem => mem.user.id === botInfo.id);
+    return botMember && botMember.can_send_messages;
+  } catch (error) {
+    console.error(`The bot hasn't permission to send messages in Telegram chat: ${chatId}`);
+    return false;
+  }
+}
 
 // Sends SE VIENE message at random intervals to all channels and chats where bot is
 function seViene() {
