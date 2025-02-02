@@ -97,6 +97,17 @@ async function loadValues() {
   }
 }
 
+async function saveValues(value: number) {
+  try {
+    const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf8'));
+      data.value = value;
+      await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
+      console.log(`${value} updated successfully:`, data.value);
+  } catch (err) {
+      console.error(`Failed to save ${value} value in bitcoin.json`);
+  }
+}
+
 // Initialize starting deadline for Prodillo game, next Bitcoin difficulty adjustment using mempool API
 async function deadline() {
   try {
@@ -140,53 +151,45 @@ async function trackBitcoinPrice() {
         bitcoinATH = max;
         
         // Load bitcoin.json file and update bitcoinATH
-        try {
-          const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf8'));
-            data.bitcoinATH = bitcoinATH;
-            await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
-            console.log('bitcoinATH updated successfully:', data.bitcoinATH);
-        } catch (err) {
-            console.error('Failed to save ATH value in bitcoin.json');
-        }
+        saveValues(bitcoinATH);
 
         // Sends ATH message to all Telegram and Discord chats
-        Object.keys(telegramChats).forEach(async chatId => (await hasSendPermission(chatId)) ? bot.sendMessage(Number(chatId),`NUEVO ATH DE ₿: $${bitcoinATH}`) : null);
-        Object.values(discordChannels).forEach(channel => channel.send(`NUEVO ATH DE ₿: $${bitcoinATH}`));
-      } else if (max > lastReportedMax && max < bitcoinATH) {
-        // If price is higher than reported max...
+        Object.keys(telegramChats).forEach(async chatId => 
+          (await hasSendPermission(chatId)) 
+          ? bot.sendMessage(Number(chatId),`NUEVO ATH DE ₿: $${bitcoinATH}`) 
+          : null);
+        Object.values(discordChannels).forEach(channel => 
+          channel.send(`NUEVO ATH DE ₿: $${bitcoinATH}`));
+      } 
+      // If price is higher than reported max...
+      else if (max > lastReportedMax && max < bitcoinATH) {
         lastReportedMax = max;
 
         // Load bitcoin.json file and update lastReportedMax
-        try {
-          const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf8'));
-            data.lastReportedMax = lastReportedMax;
-            await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
-            console.log('lastReportedMax updated successfully:', data.lastReportedMax);
-        } catch (err) {
-            console.error('Failed to save lastReportedMax in bitcoin.json');
-        }
+        saveValues(lastReportedMax);
         
         // And sends daily high message to all Telegram and Discord chats
-        Object.keys(telegramChats).forEach(async chatId => (await hasSendPermission(chatId)) ? bot.sendMessage(Number(chatId),`nuevo máximo diario de ₿: $${lastReportedMax}`) : null);
-        Object.values(discordChannels).forEach(channel => channel.send(`nuevo máximo diario de ₿: $${lastReportedMax}`));
+        Object.keys(telegramChats).forEach(async chatId => 
+          (await hasSendPermission(chatId)) 
+          ? bot.sendMessage(Number(chatId),`nuevo máximo diario de ₿: $${lastReportedMax}`) 
+          : null);
+        Object.values(discordChannels).forEach(channel => 
+          channel.send(`nuevo máximo diario de ₿: $${lastReportedMax}`));
       }
       // If price is lower than reported min...
-      if (min < lastReportedMin) {
+      else if (min < lastReportedMin) {
         lastReportedMin = min;
         
         // Load bitcoin.json file and update lastReportedMin
-        try {
-          const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf8'));
-            data.lastReportedMin = lastReportedMin;
-            await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
-            console.log('lastReportedMin updated successfully:', data.lastReportedMin);
-        } catch (err) {
-            console.error('Failed to save lastReportedMin in bitcoin.json');
-        }
+        saveValues(lastReportedMin);
         
         // Sends daily low message to all Telegram and Discord chats
-        Object.keys(telegramChats).forEach(async chatId => (await hasSendPermission(chatId)) ? bot.sendMessage(Number(chatId),`🐻 nuevo mínimo diario de ₿: $${lastReportedMin}`) : null);
-        Object.values(discordChannels).forEach(channel => channel.send(`🐻 nuevo mínimo diario de ₿: $${lastReportedMin}`));
+        Object.keys(telegramChats).forEach(async chatId => 
+          (await hasSendPermission(chatId)) 
+          ? bot.sendMessage(Number(chatId),`🐻 nuevo mínimo diario de ₿: $${lastReportedMin}`) 
+          : null);
+        Object.values(discordChannels).forEach(channel => 
+          channel.send(`🐻 nuevo mínimo diario de ₿: $${lastReportedMin}`));
       }
     } catch (error) {
       console.error('trackBitcoinPrice() error');
@@ -211,11 +214,16 @@ async function hasSendPermission(chatId: string) {
 // Sends SE VIENE message at random intervals to all channels and chats where bot is
 function seViene() {
   const luckyNumber = Math.random();
-  const selectedMsg = luckyNumber <= 0.1 ? '🫂 ABRACEN A SUS FAMILIAS!' : luckyNumber <= 0.8 ? 'SE VIENE' : '🔥 SE RECONTRA VIENE';
+  const selectedMsg = luckyNumber <= 0.1 
+  ? '🫂 ABRACEN A SUS FAMILIAS!' 
+  : luckyNumber <= 0.8 ? 'SE VIENE' 
+  : '🔥 SE RECONTRA VIENE';
   
   // Sends message to all Telegram and Discord chats
-  Object.keys(telegramChats).forEach(chatId => bot.sendMessage(Number(chatId),selectedMsg!));
-  Object.values(discordChannels).forEach(channel => channel.send(selectedMsg!));
+  Object.keys(telegramChats).forEach(chatId => 
+    bot.sendMessage(Number(chatId),selectedMsg!));
+  Object.values(discordChannels).forEach(channel => 
+    channel.send(selectedMsg!));
   setTimeout(seViene, Math.random() * ((69 - 1)*3600*1000) + 1 * 3600*1000); // Interval between 1 and 69 hours
 };
 
