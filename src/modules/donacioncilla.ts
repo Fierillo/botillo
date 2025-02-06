@@ -52,7 +52,7 @@ export async function createInvoiceREST (amount: number, description: string) {
       secret: data.payment_request.split('secret=')[1] // Esto es un ejemplo y podría no ser la forma correcta de obtener el secreto, revisa la estructura real de la respuesta
     };
   } catch (error) {
-    console.error('Error al crear factura con LND REST API:', error);
+    console.error('Error during invoice creation using REST API:', error);
     throw error;
   }
 }
