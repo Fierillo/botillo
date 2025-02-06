@@ -25,8 +25,8 @@ const client = new Client({
 });
 
 // CONSTANTS
-const PRODILLO_FILE = path.join(__dirname, 'prodillo.json');
-const BITCOIN_FILE = path.join(__dirname, 'bitcoin.json');
+const PRODILLO_FILE = path.join(__dirname, '/src/db/prodillo.json');
+const BITCOIN_FILE = path.join(__dirname, '/src/db/bitcoin.json');
 // Set time interval for automatic bot updates
 const TIME_INTERVAL = 1000*210;
 // Discord bot token
@@ -41,21 +41,16 @@ const bot = new TelegramBot(TELEGRAM_BOT_TOKEN!, {
 });
 
 // Define global variables
-let lastReportedMax: number = 0;
-let lastReportedMin: number = Infinity;
 let telegramChats: { [key: number]: string } = {};
 let discordChannels: { [key: string]: TextChannel } = {};
 let prodillos: Record<string, { user: string; predict: number }> = {};
 let isProdilleabe: boolean = false;
-let bitcoinMax: number = 0;
-let bitcoinMaxBlock: number = 0;
-let bitcoinATH: number = 73757;
 let bitcoinPrices = {
-  bitcoinATH: bitcoinATH,
-  lastReportedMax: lastReportedMax,
-  lastReportedMin: lastReportedMin,
-  bitcoinMax: bitcoinMax,
-  bitcoinMaxBlock: bitcoinMaxBlock,
+  bitcoinATH: 0,
+  lastReportedMax: 0,
+  lastReportedMin: Infinity,
+  bitcoinMax: 0,
+  bitcoinMaxBlock: 0,
 };
 export { bitcoinPrices };
 let isTest: boolean = false;
@@ -107,26 +102,28 @@ async function loadValues() {
     fs.writeFileSync(BITCOIN_FILE, JSON.stringify(bitcoinPrices, null, 2));
   }
   try {
-    bitcoinPrices = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf-8'));
-    lastReportedMax = bitcoinPrices.lastReportedMax;
-    lastReportedMin = bitcoinPrices.lastReportedMin;
-    bitcoinMax = bitcoinPrices.bitcoinMax;
-    bitcoinATH = bitcoinPrices.bitcoinATH;
-    bitcoinMaxBlock = bitcoinPrices.bitcoinMaxBlock;
-    console.log('Initial values with bitcoin.json updated successfully:', bitcoinPrices);
+    const data: typeof bitcoinPrices = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf-8'));
+    bitcoinPrices = {
+      lastReportedMax: data.lastReportedMax,
+      lastReportedMin: data.lastReportedMin,
+      bitcoinMax: data.bitcoinMax,
+      bitcoinATH: data.bitcoinATH,
+      bitcoinMaxBlock: data.bitcoinMaxBlock,
+    }
+    console.log('Initial values with bitcoin.json updated successfully:', data);
   } catch (e) {
     throw new Error(`CRITICAL ERROR: Couldn't read bitcoin.json file`);
   }
 }
 
-async function saveValues(value: number) {
+async function saveValues(key: string, value: number) {
   try {
     const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf8'));
-      data.value = value;
+      data[key] = value;
       await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
-      console.log(`${value} updated successfully:`, data.value);
+      console.log(`${key} updated successfully:`, value);
   } catch (err) {
-      console.error(`Failed to save ${value} value in bitcoin.json`);
+      console.error(`Failed to save ${key} value in bitcoin.json`);
   }
 }
 export { saveValues };
@@ -137,49 +134,52 @@ async function trackBitcoinPrice() {
     try {
       const { min, max } = await getBitcoinPrices();
       // If price is higher than ATH...
-      if (max > bitcoinATH) {
-        bitcoinATH = max;
+      console.log('trackBitcoinPrice.start called')
+      if (max > bitcoinPrices.bitcoinATH) {
+        bitcoinPrices.bitcoinATH = max;
         
         // Load bitcoin.json file and update bitcoinATH
-        saveValues(bitcoinATH);
+        await saveValues('bitcoinATH', bitcoinPrices.bitcoinATH);
 
         // Sends ATH message to all Telegram and Discord chats
         Object.keys(telegramChats).forEach(async chatId => 
           (await hasSendPermission(chatId)) 
-          ? bot.sendMessage(Number(chatId),`NUEVO ATH DE ₿: $${bitcoinATH}`) 
+          ? bot.sendMessage(Number(chatId),`NUEVO ATH DE ₿: $${bitcoinPrices.bitcoinATH}`) 
           : null);
         Object.values(discordChannels).forEach(channel => 
-          channel.send(`NUEVO ATH DE ₿: $${bitcoinATH}`));
+          channel.send(`NUEVO ATH DE ₿: $${bitcoinPrices.bitcoinATH}`));
       } 
       // If price is higher than reported max...
-      else if (max > lastReportedMax && max < bitcoinATH) {
-        lastReportedMax = max;
+      else if (max > bitcoinPrices.lastReportedMax && max < bitcoinPrices.bitcoinATH) {
+        bitcoinPrices.lastReportedMax = max;
 
         // Load bitcoin.json file and update lastReportedMax
-        saveValues(lastReportedMax);
+        await saveValues('lastReportedMax', bitcoinPrices.lastReportedMax);
         
         // And sends daily high message to all Telegram and Discord chats
         Object.keys(telegramChats).forEach(async chatId => 
           (await hasSendPermission(chatId)) 
-          ? bot.sendMessage(Number(chatId),`nuevo máximo diario de ₿: $${lastReportedMax}`) 
+          ? bot.sendMessage(Number(chatId),`nuevo máximo diario de ₿: $${bitcoinPrices.lastReportedMax}`) 
           : null);
         Object.values(discordChannels).forEach(channel => 
-          channel.send(`nuevo máximo diario de ₿: $${lastReportedMax}`));
+          channel.send(`nuevo máximo diario de ₿: $${bitcoinPrices.lastReportedMax}`));
       }
       // If price is lower than reported min...
-      else if (min < lastReportedMin) {
-        lastReportedMin = min;
+      else if (min < bitcoinPrices.lastReportedMin) {
+        bitcoinPrices.lastReportedMin = min;
         
         // Load bitcoin.json file and update lastReportedMin
-        saveValues(lastReportedMin);
+        await saveValues('lastReportedMin', bitcoinPrices.lastReportedMin);
         
         // Sends daily low message to all Telegram and Discord chats
         Object.keys(telegramChats).forEach(async chatId => 
           (await hasSendPermission(chatId)) 
-          ? bot.sendMessage(Number(chatId),`🐻 nuevo mínimo diario de ₿: $${lastReportedMin}`) 
+          ? bot.sendMessage(Number(chatId),`🐻 nuevo mínimo diario de ₿: $${bitcoinPrices.lastReportedMin}`) 
           : null);
         Object.values(discordChannels).forEach(channel => 
-          channel.send(`🐻 nuevo mínimo diario de ₿: $${lastReportedMin}`));
+          channel.send(`🐻 nuevo mínimo diario de ₿: $${bitcoinPrices.lastReportedMin}`));
+      } else {
+        console.log('trackBitcoinPrice.end called');
       }
     } catch (error) {
       console.error('trackBitcoinPrice() error');
@@ -219,13 +219,13 @@ function seViene() {
 
 // Define cron job to reset daily highs and lows at midnight (UTC = 00:00)
 schedule.scheduleJob('0 21 * * *', async () => { // 21:00 at local time (UTC-3) = 00:00 UTC
-  lastReportedMax = 0;
-  lastReportedMin = Infinity;
+  bitcoinPrices.lastReportedMax = 0;
+  bitcoinPrices.lastReportedMin = Infinity;
   
   // Load bitcoin.json file and update lastReportedMax/Min
   const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf8'));
-  data.lastReportedMax = lastReportedMax;
-  data.lastReportedMin = lastReportedMin;
+  data.lastReportedMax = bitcoinPrices.lastReportedMax;
+  data.lastReportedMin = bitcoinPrices.lastReportedMin;
   await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
   
   // Then send reset message to all Discord channels...
@@ -242,10 +242,10 @@ schedule.scheduleJob('0 21 * * *', async () => { // 21:00 at local time (UTC-3) 
 client.on('messageCreate', async (message: { content: string; channel: TextChannel; }) => {
   if (message.content === '/precio') {
     const { price } = await getBitcoinPrices();
-    (message.channel as TextChannel).send(`precio de ₿: $${price} (${(100*(price/bitcoinATH)).toFixed(1)}% del ATH)`);
+    (message.channel as TextChannel).send(`precio de ₿: $${price} (${(100*(price/bitcoinPrices.bitcoinATH)).toFixed(1)}% del ATH)`);
   } else if (message.content === '/hilo') {
     const { max, min } = await getBitcoinPrices();
-    (message.channel as TextChannel).send(`📈 máximo diario de ₿: $${max} (${(100*(max/bitcoinATH)).toFixed(1)}% del ATH)\n🐻 mínimo diario de ₿: $${min}\n🔺 Volatilidad diaria: $${max-min} (${(100*(max/min)-100).toFixed(1)}%)\n🚀 ATH de ₿: $${bitcoinATH}`);
+    (message.channel as TextChannel).send(`📈 máximo diario de ₿: $${max} (${(100*(max/bitcoinPrices.bitcoinATH)).toFixed(1)}% del ATH)\n🐻 mínimo diario de ₿: $${min}\n🔺 Volatilidad diaria: $${max-min} (${(100*(max/min)-100).toFixed(1)}%)\n🚀 ATH de ₿: $${bitcoinPrices.bitcoinATH}`);
 }});
 
 // Bot says GM every day at 8am (UTC-3)
@@ -278,7 +278,7 @@ bot.on('message', (msg) => {
 bot.onText(/\/precio(@botillo21_bot)?/, async (msg) => {
   try {
     const { price } = await getBitcoinPrices();
-    bot.sendMessage(msg.chat.id, `Precio actual de ₿: $${price} (${(100*(price/bitcoinATH)).toFixed(1)}% del ATH)`);
+    bot.sendMessage(msg.chat.id, `Precio actual de ₿: $${price} (${(100*(price/bitcoinPrices.bitcoinATH)).toFixed(1)}% del ATH)`);
   } catch (error) {
     bot.sendMessage(msg.chat.id, 'Lo siento, hubo un error al obtener el precio de Bitcoin.');
     console.error('error in Telegram command /precio');
@@ -289,7 +289,7 @@ bot.onText(/\/precio(@botillo21_bot)?/, async (msg) => {
 bot.onText(/\/hilo(@botillo21_bot)?/, async (msg) => {
   try {  
     const { max, min } = await getBitcoinPrices();
-    bot.sendMessage(msg.chat.id, `📈 máximo diario de ₿: $${max} (${(100*(max/bitcoinATH)).toFixed(1)}% del ATH)\n🐻 mínimo diario de ₿: $${min}\n🔺 Volatilidad diaria: $${max-min} (${(100*(max/min)-100).toFixed(1)}%)\n🚀 ATH de ₿: $${bitcoinATH}`);
+    bot.sendMessage(msg.chat.id, `📈 máximo diario de ₿: $${max} (${(100*(max/bitcoinPrices.bitcoinATH)).toFixed(1)}% del ATH)\n🐻 mínimo diario de ₿: $${min}\n🔺 Volatilidad diaria: $${max-min} (${(100*(max/min)-100).toFixed(1)}%)\n🚀 ATH de ₿: $${bitcoinPrices.bitcoinATH}`);
   } catch (error) {
     bot.sendMessage(msg.chat.id, 'Lo siento, hubo un error al obtener el precio de Bitcoin.');
     console.error('error in Telegram command /hilo');
@@ -377,8 +377,8 @@ bot.onText(/\/prodillo(\s|\@botillo21_bot\s)(.+)/, async (msg, match) => {
     }
     
     // If the prediction is lower than current Bitcoin max price in the round, returns a message to the user
-    if (predict < bitcoinMax) {
-      return await bot.sendMessage(msg.chat.id, `Tenes que ingresar un valor mayor a ${bitcoinMax} para tener alguna chance de ganar.\nMentalidad de tiburón loko!`);
+    if (predict < bitcoinPrices.bitcoinMax) {
+      return await bot.sendMessage(msg.chat.id, `Tenes que ingresar un valor mayor a ${bitcoinPrices.bitcoinMax} para tener alguna chance de ganar.\nMentalidad de tiburón loko!`);
     }
     
     // Stores user prediction in a prodillo.json file
@@ -405,7 +405,7 @@ bot.onText(/\/listilla/, async (msg) => {
     
     // Sort the prodillos by their difference from the current Max Bitcoin price
     const sortedProdillos = Object.entries(prodillos).map(([userId, { user, predict }]) => {
-      return {user, predict, diff: Math.abs(predict - bitcoinMax)};
+      return {user, predict, diff: Math.abs(predict - bitcoinPrices.bitcoinMax)};
     }).sort((a, b) => a.diff - b.diff);
 
     const closestProdillo = sortedProdillos[0].predict;
@@ -420,7 +420,7 @@ bot.onText(/\/listilla/, async (msg) => {
         formattedList += `${user.padEnd(20, ' ')} | $${(predict.toString()).padStart(10, ' ')} | ${diff}\n`;
       }
     });
-    await bot.sendMessage(msg.chat.id, `<pre><b>LISTA DE PRODILLOS:</b>\n\nPrecio máximo de ₿ en esta ronda: $${bitcoinMax}\n-----------------------------------------------------\n${formattedList}\n\n🟧⛏️ Tiempo restante para mandar prodillos: ${isProdilleabe ? prodilleableDeadline : 0} bloques\n🏁 Tiempo restante para saber ganador: ${winnerDeadline} bloques</pre>`, { parse_mode: 'HTML' });
+    await bot.sendMessage(msg.chat.id, `<pre><b>LISTA DE PRODILLOS:</b>\n\nPrecio máximo de ₿ en esta ronda: $${bitcoinPrices.bitcoinMax}\n-----------------------------------------------------\n${formattedList}\n\n🟧⛏️ Tiempo restante para mandar prodillos: ${isProdilleabe ? prodilleableDeadline : 0} bloques\n🏁 Tiempo restante para saber ganador: ${winnerDeadline} bloques</pre>`, { parse_mode: 'HTML' });
   } catch (error) {
     console.error('Could not get the list of prodillos');
     await bot.sendMessage(msg.chat.id, 'No se pudo obtener la lista de prodillos.');

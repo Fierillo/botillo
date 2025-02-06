@@ -7,9 +7,9 @@ import { bitcoinPrices } from '../..';
 import TelegramBot from 'node-telegram-bot-api';
 
 // CONSTANTS
-const PRODILLO_FILE = path.join(__dirname, 'prodillo.json');
-const BITCOIN_FILE = path.join(__dirname, 'bitcoin.json');
-const TROFEILLOS_FILE = path.join(__dirname, 'trofeillos.json');
+const PRODILLO_FILE = path.join(__dirname, '../db/prodillo.json');
+const BITCOIN_FILE = path.join(__dirname, '../db/bitcoin.json');
+const TROFEILLOS_FILE = path.join(__dirname, '../db/trofeillos.json');
 const PRODILLO_TIME_INTERVAL = 1000 * 21;
 
 // variables
