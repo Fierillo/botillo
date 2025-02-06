@@ -1,5 +1,5 @@
 import axios from "axios";
-import WebSocket from 'ws';
+//import WebSocket from 'ws';
 
 let lastDeadline = {
     latestHeight: Infinity,
@@ -7,9 +7,8 @@ let lastDeadline = {
     prodilleableDeadline: Infinity,
 };
 
-/*// Initialize starting deadline for Prodillo game, next Bitcoin difficulty adjustment using mempool API
+// Initialize starting deadline for Prodillo game, next Bitcoin difficulty adjustment using mempool API
 export async function deadline() {
-    console.log('deadline() called');
     try {
       const response = await axios.get('https://mempool.space/api/blocks/tip/height');
       const latestHeight = Number(response.data);
@@ -18,19 +17,24 @@ export async function deadline() {
         winnerDeadline: 2015 - latestHeight % 2016, // 2016 is the Bitcoin difficulty adjustment
         prodilleableDeadline: (2015 - latestHeight % 2016) - 690, // prodillos can be submitted 690 blocks before the difficulty adjustment
       };
+      console.log('deadline() called', lastDeadline);
       return lastDeadline;
     } catch (error) {
       console.error('deadline() error');
       return lastDeadline;
     };
-  };*/
+};
 
-// Conexión WebSocket básica
+/*// Conexión WebSocket básica
 const ws = new WebSocket('wss://mempool.space/api/v1/ws');
 
 ws.on('open', () => {
-  console.log('Conectado a Bitcoin blocks');
-  ws.send(JSON.stringify({ action: 'want', data: ['blocks'] }));
+  try {
+    console.log('Mempool.space WebSocket connected');
+    ws.send(JSON.stringify({ "action": "want", "data": ["mempool-blocks", "stats"] }));
+  } catch (e) {
+    console.error('cannot connect to mempool.space WebSocket');
+  }
 });
 
 ws.on('message', (data: string) => {
@@ -56,6 +60,6 @@ ws.on('close', () => {
 
 // Mantenemos la misma interfaz original
 export async function deadline() {
-  console.log('deadline() called'); 
+  console.log('deadline() called:',lastDeadline); 
   return lastDeadline;
-}
+}*/
