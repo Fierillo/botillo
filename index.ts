@@ -201,12 +201,23 @@ async function trackBitcoinPrice() {
 // Function to check if bot has permission to send messages
 async function hasSendPermission(chatId: string) {
   try {
-    const members = await bot.getChatAdministrators(chatId);
     const botInfo = await bot.getMe();
-    const botMember = members.find(mem => mem.user.id === botInfo.id);
-    return botMember && botMember.can_send_messages;
+    const chatMember = await bot.getChatMember(chatId, botInfo.id);
+    
+    // If the bot is 'restricted', we check if it can send messages.
+    if (chatMember.status === 'restricted') {
+      return chatMember.can_send_messages;
+    }
+    
+    // If the bot is 'member', 'administrator' or 'creator', it has permission.
+    if (['member', 'administrator', 'creator'].includes(chatMember.status)) {
+      return true;
+    }
+    
+    // In any other case, the bot doesn't have permission.
+    return false;
   } catch (error) {
-    console.error(`The bot hasn't permission to send messages in Telegram chat: ${chatId}`);
+    console.error(`Error verificando permisos en el chat ${chatId}:`, error);
     return false;
   }
 }
