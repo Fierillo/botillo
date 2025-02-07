@@ -144,10 +144,10 @@ async function trackBitcoinPrice() {
         // Sends ATH message to all Telegram and Discord chats
         Object.keys(telegramChats).forEach(async chatId => 
           (await hasSendPermission(chatId)) 
-          ? bot.sendMessage(Number(chatId),`NUEVO ATH DE ₿: $${bitcoinPrices.bitcoinATH}`) 
+          ? bot.sendMessage(Number(chatId),`🚀 NUEVO ATH DE ₿: $${bitcoinPrices.bitcoinATH}`) 
           : null);
         Object.values(discordChannels).forEach(channel => 
-          channel.send(`NUEVO ATH DE ₿: $${bitcoinPrices.bitcoinATH}`));
+          channel.send(`🚀 NUEVO ATH DE ₿: $${bitcoinPrices.bitcoinATH}`));
       } 
       // If price is higher than reported max...
       else if (max > bitcoinPrices.lastReportedMax && max < bitcoinPrices.bitcoinATH) {
@@ -159,10 +159,10 @@ async function trackBitcoinPrice() {
         // And sends daily high message to all Telegram and Discord chats
         Object.keys(telegramChats).forEach(async chatId => 
           (await hasSendPermission(chatId)) 
-          ? bot.sendMessage(Number(chatId),`nuevo máximo diario de ₿: $${bitcoinPrices.lastReportedMax}`) 
+          ? bot.sendMessage(Number(chatId),`🦁 nuevo máximo diario de ₿: $${bitcoinPrices.lastReportedMax}`) 
           : null);
         Object.values(discordChannels).forEach(channel => 
-          channel.send(`nuevo máximo diario de ₿: $${bitcoinPrices.lastReportedMax}`));
+          channel.send(`🦁 nuevo máximo diario de ₿: $${bitcoinPrices.lastReportedMax}`));
       }
       // If price is lower than reported min...
       else if (min < bitcoinPrices.lastReportedMin) {
@@ -245,7 +245,7 @@ client.on('messageCreate', async (message: { content: string; channel: TextChann
     (message.channel as TextChannel).send(`precio de ₿: $${price} (${(100*(price/bitcoinPrices.bitcoinATH)).toFixed(1)}% del ATH)`);
   } else if (message.content === '/hilo') {
     const { max, min } = await getBitcoinPrices();
-    (message.channel as TextChannel).send(`📈 máximo diario de ₿: $${max} (${(100*(max/bitcoinPrices.bitcoinATH)).toFixed(1)}% del ATH)\n🐻 mínimo diario de ₿: $${min}\n🔺 Volatilidad diaria: $${max-min} (${(100*(max/min)-100).toFixed(1)}%)\n🚀 ATH de ₿: $${bitcoinPrices.bitcoinATH}`);
+    (message.channel as TextChannel).send(`🦁 máximo diario de ₿: $${max} (${(100*(max/bitcoinPrices.bitcoinATH)).toFixed(1)}% del ATH)\n🐻 mínimo diario de ₿: $${min}\n🔺 Volatilidad diaria: $${max-min} (${(100*(max/min)-100).toFixed(1)}%)\n🚀 ATH de ₿: $${bitcoinPrices.bitcoinATH}`);
 }});
 
 // Bot says GM every day at 8am (UTC-3)
@@ -289,7 +289,7 @@ bot.onText(/\/precio(@botillo21_bot)?/, async (msg) => {
 bot.onText(/\/hilo(@botillo21_bot)?/, async (msg) => {
   try {  
     const { max, min } = await getBitcoinPrices();
-    bot.sendMessage(msg.chat.id, `📈 máximo diario de ₿: $${max} (${(100*(max/bitcoinPrices.bitcoinATH)).toFixed(1)}% del ATH)\n🐻 mínimo diario de ₿: $${min}\n🔺 Volatilidad diaria: $${max-min} (${(100*(max/min)-100).toFixed(1)}%)\n🚀 ATH de ₿: $${bitcoinPrices.bitcoinATH}`);
+    bot.sendMessage(msg.chat.id, `🦁 máximo diario de ₿: $${max} (${(100*(max/bitcoinPrices.bitcoinATH)).toFixed(1)}% del ATH)\n🐻 mínimo diario de ₿: $${min}\n🔺 Volatilidad diaria: $${max-min} (${(100*(max/min)-100).toFixed(1)}%)\n🚀 ATH de ₿: $${bitcoinPrices.bitcoinATH}`);
   } catch (error) {
     bot.sendMessage(msg.chat.id, 'Lo siento, hubo un error al obtener el precio de Bitcoin.');
     console.error('error in Telegram command /hilo');
