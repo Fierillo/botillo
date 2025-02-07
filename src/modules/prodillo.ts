@@ -7,7 +7,7 @@ import { bitcoinPrices } from '../..';
 import TelegramBot from 'node-telegram-bot-api';
 
 // CONSTANTS
-const PRODILLO_FILE = path.join(__dirname, '../db/prodillo.json');
+const PRODILLOS_FILE = path.join(__dirname, '../db/prodillos.json');
 const BITCOIN_FILE = path.join(__dirname, '../db/bitcoin.json');
 const TROFEILLOS_FILE = path.join(__dirname, '../db/trofeillos.json');
 const PRODILLO_TIME_INTERVAL = 1000 * 69;
@@ -46,8 +46,8 @@ async function prodilloInterval(bot: TelegramBot, telegramChats: { [key: number]
     // Triggers win event if deadline is over (difficulty adjustment of Bitcoin)
     if (((winnerDeadline === 0) && !prodilloState.isWon) || prodilloState.isWin) {
       
-      // Read prodillo.json file and store it in a local variable
-      prodillos = JSON.parse(await fs.promises.readFile(PRODILLO_FILE, 'utf-8'));
+      // Read prodillos.json file and store it in a local variable
+      prodillos = JSON.parse(await fs.promises.readFile(PRODILLOS_FILE, 'utf-8'));
       
       // Sort the prodillos by their difference from the current Max Bitcoin price of the round
       const prodillosSorted = Object.entries(prodillos).sort(([,a],[,b]) => 
@@ -99,19 +99,19 @@ async function prodilloInterval(bot: TelegramBot, telegramChats: { [key: number]
         console.error('Failed to wipe bitcoin.json file');
       }
       
-      // Wipe prodillo.json file
+      // Wipe prodillos.json file
       try {
-        fs.writeFileSync(PRODILLO_FILE, JSON.stringify({}, null, 2));
-        console.log('prodillo.json file wiped successfully');
+        fs.writeFileSync(PRODILLOS_FILE, JSON.stringify({}, null, 2));
+        console.log('prodillos.json file wiped successfully');
       } catch (err) {
-        console.error('Failed to wipe prodillo.json file');
+        console.error('Failed to wipe prodillos.json file');
       }
       
       try {
-        fs.writeFileSync(PRODILLO_FILE, JSON.stringify({'0': {user: 'Hal Finney', predict: 10000000}}, null, 2));
-        console.log('Hal Finney prediction added to prodillo.json file');
+        fs.writeFileSync(PRODILLOS_FILE, JSON.stringify({'0': {user: 'Hal Finney', predict: 10000000}}, null, 2));
+        console.log('Hal Finney prediction added to prodillos.json file');
       } catch (err) {
-        console.error('Failed to add Hal Finney prediction to prodillo.json file');
+        console.error('Failed to add Hal Finney prediction to prodillos.json file');
       }
       
       // Prevents that win event is triggered again for a while

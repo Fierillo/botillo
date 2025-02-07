@@ -25,8 +25,9 @@ const client = new Client({
 });
 
 // CONSTANTS
-const PRODILLO_FILE = path.join(__dirname, '/src/db/prodillo.json');
+const PRODILLOS_FILE = path.join(__dirname, '/src/db/prodillos.json');
 const BITCOIN_FILE = path.join(__dirname, '/src/db/bitcoin.json');
+const TROFEILLOS_FILE = path.join(__dirname, '/src/db/trofeillos.json');
 // Set time interval for automatic bot updates
 const TIME_INTERVAL = 1000*210;
 // Discord bot token
@@ -75,13 +76,13 @@ export { prodilloState };
 
 // Restores prodillos from JSON file
 function loadProdillos() {
-  if (!fs.existsSync(PRODILLO_FILE)) {
-      fs.writeFileSync(PRODILLO_FILE, JSON.stringify(prodillos, null, 2))
+  if (!fs.existsSync(PRODILLOS_FILE)) {
+      fs.writeFileSync(PRODILLOS_FILE, JSON.stringify(prodillos, null, 2))
   }
   try {
-  prodillos = JSON.parse(fs.readFileSync(PRODILLO_FILE, 'utf-8'));
+  prodillos = JSON.parse(fs.readFileSync(PRODILLOS_FILE, 'utf-8'));
   } catch (e) {
-  throw new Error(`CRITICAL ERROR: Couldn't read prodillo.json file`);
+  throw new Error(`CRITICAL ERROR: Couldn't read prodillos.json file`);
   }
 }
 
@@ -383,9 +384,9 @@ bot.onText(/\/prodillo(\s|\@botillo21_bot\s)(.+)/, async (msg, match) => {
   
   if ((isProdilleabe || isTest) && userId && user && !isNaN(predict) && predict >= 0 && isFinite(predict)) {
 
-    // try to read prodillo.json file
+    // try to read prodillos.json file
     try {
-      const fileContent = await fs.promises.readFile(PRODILLO_FILE, 'utf-8');
+      const fileContent = await fs.promises.readFile(PRODILLOS_FILE, 'utf-8');
       prodillos = JSON.parse(fileContent);
     } catch (error) {
       console.error('error in Telegram command /prodillo');
@@ -402,12 +403,12 @@ bot.onText(/\/prodillo(\s|\@botillo21_bot\s)(.+)/, async (msg, match) => {
       return await bot.sendMessage(msg.chat.id, `Tenes que ingresar un valor mayor a ${bitcoinPrices.bitcoinMax} para tener alguna chance de ganar.\nMentalidad de tiburón loko!`);
     }
     
-    // Stores user prediction in a prodillo.json file
+    // Stores user prediction in a prodillos.json file
     prodillos[userId] = {
       user: user,
       predict: predict,
     };
-    await fs.promises.writeFile(PRODILLO_FILE, JSON.stringify(prodillos, null, 2));
+    await fs.promises.writeFile(PRODILLOS_FILE, JSON.stringify(prodillos, null, 2));
     
     // Sends a reminder with the deadline
     await bot.sendMessage(msg.chat.id, `Prodillo de ${user} registrado: $${predict}\n\n🟧⛏️ Tiempo restante para mandar prodillos: ${isProdilleabe? prodilleableDeadline : 0} bloques\n🏁 Tiempo restante para saber ganador: ${winnerDeadline} bloques`, {disable_web_page_preview: true});
@@ -418,8 +419,8 @@ bot.onText(/\/prodillo(\s|\@botillo21_bot\s)(.+)/, async (msg, match) => {
 // When user writes /lista, sends a list of all registered prodillos
 bot.onText(/\/listilla/, async (msg) => {
   try {
-    // Read prodillo.json file and store it in a local variable
-    prodillos = JSON.parse(await fs.promises.readFile(PRODILLO_FILE, 'utf-8'));
+    // Read prodillos.json file and store it in a local variable
+    prodillos = JSON.parse(await fs.promises.readFile(PRODILLOS_FILE, 'utf-8'));
     
     // Get the deadlines
     const { winnerDeadline, prodilleableDeadline } = await deadline();
@@ -452,10 +453,13 @@ bot.onText(/\/listilla/, async (msg) => {
 bot.onText(/\/trofeillos/, (msg) => {
   
   // Read trofeillos.json to get the list of winners
+  if (!fs.existsSync(TROFEILLOS_FILE)) {
+    fs.writeFileSync(TROFEILLOS_FILE, JSON.stringify(trofeillos, null, 2))
+  }
   try {
-    trofeillos = JSON.parse(fs.readFileSync('trofeillos.json', 'utf-8'));
+  trofeillos = JSON.parse(fs.readFileSync(TROFEILLOS_FILE, 'utf-8'));
   } catch (e) {
-    trofeillos = {};
+  throw new Error(`CRITICAL ERROR: Couldn't read trofeillos.json file`);
   }
   let mensaje = "";
   for (const [id, data] of Object.entries(trofeillos)) {
