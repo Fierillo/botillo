@@ -40,6 +40,16 @@ const bot = new TelegramBot(TELEGRAM_BOT_TOKEN!, {
   }
 });
 
+// If bot receives ECONNRESET error, it will ignore it
+bot.on('polling_error', (error) => {
+  if (error && error.message && error.message.includes('ECONNRESET')) {
+    // Ignoramos el error ECONNRESET
+    console.warn('ECONNRESET detected... Omitting.');
+  } else {
+    console.error('Polling error:', error);
+  }
+});
+
 // Define global variables
 let telegramChats: { [key: number]: string } = {};
 let discordChannels: { [key: string]: TextChannel } = {};
