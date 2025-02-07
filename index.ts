@@ -134,7 +134,7 @@ async function trackBitcoinPrice() {
     try {
       const { min, max } = await getBitcoinPrices();
       // If price is higher than ATH...
-      console.log('trackBitcoinPrice.start called')
+      //console.log('trackBitcoinPrice.start called')
       if (max > bitcoinPrices.bitcoinATH) {
         bitcoinPrices.bitcoinATH = max;
         
@@ -179,7 +179,7 @@ async function trackBitcoinPrice() {
         Object.values(discordChannels).forEach(channel => 
           channel.send(`🐻 nuevo mínimo diario de ₿: $${bitcoinPrices.lastReportedMin}`));
       } else {
-        console.log('trackBitcoinPrice.end called');
+        //console.log('trackBitcoinPrice.end called');
       }
     } catch (error) {
       console.error('trackBitcoinPrice() error');

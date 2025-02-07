@@ -17,7 +17,7 @@ export async function deadline() {
         winnerDeadline: 2015 - latestHeight % 2016, // 2016 is the Bitcoin difficulty adjustment
         prodilleableDeadline: (2015 - latestHeight % 2016) - 690, // prodillos can be submitted 690 blocks before the difficulty adjustment
       };
-      console.log('deadline() called', lastDeadline);
+      //console.log('deadline() called', lastDeadline);
       return lastDeadline;
     } catch (error) {
       console.error('deadline() error');

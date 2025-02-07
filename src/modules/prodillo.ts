@@ -10,7 +10,7 @@ import TelegramBot from 'node-telegram-bot-api';
 const PRODILLO_FILE = path.join(__dirname, '../db/prodillo.json');
 const BITCOIN_FILE = path.join(__dirname, '../db/bitcoin.json');
 const TROFEILLOS_FILE = path.join(__dirname, '../db/trofeillos.json');
-const PRODILLO_TIME_INTERVAL = 1000 * 21;
+const PRODILLO_TIME_INTERVAL = 1000 * 69;
 
 // variables
 let trofeillos: Record<string, { champion: string; trofeillo: string[] }> = {};
