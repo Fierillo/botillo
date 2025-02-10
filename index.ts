@@ -7,7 +7,7 @@ import TelegramBot from 'node-telegram-bot-api';
 const fs = require('fs');
 const path = require('path');
 import { createInvoiceREST } from './src/modules/donacioncilla';
-import { prodilloInterval } from './src/modules/prodillo';
+import { prodilloInterval, prodilloState } from './src/modules/prodillo';
 import { getBitcoinPrices } from './src/modules/bitcoinPrices';
 import { deadline } from './src/modules/deadline';
 
@@ -55,7 +55,6 @@ bot.on('polling_error', (error) => {
 let telegramChats: { [key: number]: string } = {};
 let discordChannels: { [key: string]: TextChannel } = {};
 let prodillos: Record<string, { user: string; predict: number }> = {};
-let isProdilleabe: boolean = false;
 let bitcoinPrices = {
   bitcoinATH: 0,
   lastReportedMax: 0,
@@ -66,13 +65,6 @@ let bitcoinPrices = {
 export { bitcoinPrices };
 let isTest: boolean = false;
 let trofeillos: Record<string, { champion: string; trofeillo: string[]}> = {};
-let prodilloState = {
-  winnerName: '',
-  isProdilleable: true,
-  isWon: false,
-  isWin: false,
-};
-export { prodilloState };
 
 // Restores prodillos from JSON file
 function loadProdillos() {
@@ -374,7 +366,7 @@ bot.onText(/\/prodillo(\s|\@botillo21_bot\s)(.+)/, async (msg, match) => {
   const { winnerDeadline, prodilleableDeadline } = await deadline();
   
   // If deadline for prodillos is over, returns a message to the users to let them know
-  if(!isProdilleabe && !isTest) {
+  if(!prodilloState.isProdilleable && !isTest) {
     return await bot.sendMessage(msg.chat.id, `Tarde loko!\nespera ${winnerDeadline} bloques que comience una nueva ronda de prodillos!`);
   }
   const userId = msg.from?.id;
@@ -382,7 +374,7 @@ bot.onText(/\/prodillo(\s|\@botillo21_bot\s)(.+)/, async (msg, match) => {
   const predictStr = (match as RegExpMatchArray)[2];
   const predict = Math.round(Number(predictStr));
   
-  if ((isProdilleabe || isTest) && userId && user && !isNaN(predict) && predict >= 0 && isFinite(predict)) {
+  if ((prodilloState.isProdilleable || isTest) && userId && user && !isNaN(predict) && predict >= 0 && isFinite(predict)) {
 
     // try to read prodillos.json file
     try {
@@ -411,7 +403,7 @@ bot.onText(/\/prodillo(\s|\@botillo21_bot\s)(.+)/, async (msg, match) => {
     await fs.promises.writeFile(PRODILLOS_FILE, JSON.stringify(prodillos, null, 2));
     
     // Sends a reminder with the deadline
-    await bot.sendMessage(msg.chat.id, `Prodillo de ${user} registrado: $${predict}\n\n🟧⛏️ Tiempo restante para mandar prodillos: ${isProdilleabe? prodilleableDeadline : 0} bloques\n🏁 Tiempo restante para saber ganador: ${winnerDeadline} bloques`, {disable_web_page_preview: true});
+    await bot.sendMessage(msg.chat.id, `Prodillo de ${user} registrado: $${predict}\n\n🟧⛏️ Tiempo restante para mandar prodillos: ${prodilloState.isProdilleable? prodilleableDeadline : 0} bloques\n🏁 Tiempo restante para saber ganador: ${winnerDeadline} bloques`, {disable_web_page_preview: true});
     console.log(`Registered prodillo of ${user} [${userId}]: ${predict}`);
   } else await bot.sendMessage(msg.chat.id, '¡Ingresaste cualquier cosa loko!\n\n/prodillo <numero>');
 });
@@ -442,7 +434,7 @@ bot.onText(/\/listilla/, async (msg) => {
         formattedList += `${user.padEnd(20, ' ')} | $${(predict.toString()).padStart(10, ' ')} | ${diff}\n`;
       }
     });
-    await bot.sendMessage(msg.chat.id, `<pre><b>LISTA DE PRODILLOS:</b>\n\nPrecio máximo de ₿ en esta ronda: $${bitcoinPrices.bitcoinMax}\n-----------------------------------------------------\n${formattedList}\n\n🟧⛏️ Tiempo restante para mandar prodillos: ${isProdilleabe ? prodilleableDeadline : 0} bloques\n🏁 Tiempo restante para saber ganador: ${winnerDeadline} bloques</pre>`, { parse_mode: 'HTML' });
+    await bot.sendMessage(msg.chat.id, `<pre><b>LISTA DE PRODILLOS:</b>\n\nPrecio máximo de ₿ en esta ronda: $${bitcoinPrices.bitcoinMax}\n-----------------------------------------------------\n${formattedList}\n\n🟧⛏️ Tiempo restante para mandar prodillos: ${prodilloState.isProdilleable ? prodilleableDeadline : 0} bloques\n🏁 Tiempo restante para saber ganador: ${winnerDeadline} bloques</pre>`, { parse_mode: 'HTML' });
   } catch (error) {
     console.error('Could not get the list of prodillos');
     await bot.sendMessage(msg.chat.id, 'No se pudo obtener la lista de prodillos.');

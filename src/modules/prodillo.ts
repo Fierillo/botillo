@@ -1,7 +1,7 @@
 import fs from 'fs';
 import { getBitcoinPrices } from './bitcoinPrices';
 import { deadline } from './deadline'; 
-import { prodilloState, saveValues } from '../..';
+import { saveValues } from '../..';
 import path from 'path';
 import { bitcoinPrices } from '../..';
 import TelegramBot from 'node-telegram-bot-api';
@@ -15,6 +15,12 @@ const PRODILLO_TIME_INTERVAL = 1000 * 69;
 // variables
 let trofeillos: Record<string, { champion: string; trofeillo: string[] }> = {};
 let trofeillo = '🏆 ';
+let prodilloState = {
+  winnerName: '',
+  isProdilleable: true,
+  isWon: false,
+  isWin: false,
+};
 
 // Defines interval that checks deadlines and enable/disable prodillos. When deadline is over, sends a message to all Telegram chats to let them know the winner
 async function prodilloInterval(bot: TelegramBot, telegramChats: { [key: number]: string; }, prodillos: Record<string, { user: string; predict: number; }>) {
@@ -121,4 +127,4 @@ async function prodilloInterval(bot: TelegramBot, telegramChats: { [key: number]
   }
 };
 
-export { prodilloInterval };
+export { prodilloInterval, prodilloState };
