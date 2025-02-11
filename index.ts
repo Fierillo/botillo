@@ -381,7 +381,15 @@ bot.onText(/\/prodillo(\s|\@botillo21_bot\s)(.+)/, async (msg, match) => {
       const fileContent = await fs.promises.readFile(PRODILLOS_FILE, 'utf-8');
       prodillos = JSON.parse(fileContent);
     } catch (error) {
-      console.error('error in Telegram command /prodillo');
+      console.error('error trying to read prodillos.json');
+    }
+
+    // try to read bitcoin.json file
+    try {
+      const fileContent = await fs.promises.readFile(BITCOIN_FILE, 'utf-8');
+      bitcoinPrices = JSON.parse(fileContent);
+    } catch (error) {
+      console.error('error trying to read bitcoin.json');
     }
 
     // Check if the prediction already exists
@@ -413,6 +421,9 @@ bot.onText(/\/listilla/, async (msg) => {
   try {
     // Read prodillos.json file and store it in a local variable
     prodillos = JSON.parse(await fs.promises.readFile(PRODILLOS_FILE, 'utf-8'));
+
+    // Read bitcoin.json file and store it in a local variable
+    bitcoinPrices = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf-8'));
     
     // Get the deadlines
     const { winnerDeadline, prodilleableDeadline } = await deadline();
