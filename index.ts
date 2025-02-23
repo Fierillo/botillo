@@ -102,6 +102,12 @@ async function loadValues() {
   }
   try {
     const data: typeof bitcoinPrices = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf-8'));
+    if (!data.lastReportedMax) {data.lastReportedMax = 0}
+    if (!data.lastReportedMin) {data.lastReportedMin = Infinity}
+    if (!data.bitcoinMax) {data.bitcoinMax = 0}
+    if (!data.bitcoinATH) {data.bitcoinATH = 0}
+    if (!data.bitcoinMaxBlock) {data.bitcoinMaxBlock = 0}
+    await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
     bitcoinPrices = {
       lastReportedMax: data.lastReportedMax,
       lastReportedMin: data.lastReportedMin,
