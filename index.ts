@@ -7,7 +7,7 @@ import TelegramBot from 'node-telegram-bot-api';
 const fs = require('fs');
 const path = require('path');
 import { createInvoiceREST } from './src/modules/donacioncilla';
-import { callListilla, callProdillo, callTrofeillos, prodilloInterval, saveValues } from './src/modules/prodillo';
+import { getListilla, getProdillo, getTrofeillos, prodilloInterval, saveValues, prodilloState } from './src/modules/prodillo';
 import { getBitcoinPrices } from './src/modules/bitcoinPrices';
 
 // Load environment variables from .env file
@@ -61,8 +61,6 @@ let bitcoinPrices = {
   bitcoinMax: 0,
   bitcoinMaxBlock: 0,
 };
-
-//let isTest: boolean = false;
 
 // Restores prodillos from JSON file
 function loadProdillos() {
@@ -332,13 +330,13 @@ bot.onText(/(?<=\s|^)(eth|solana|sol |bcash|bch |polkadot|dot |cardano|ada )\w*/
 /*bot.onText(/\/test/, (msg) => {
   const test = msg.text?.split('/test ')[1];
   if (test === 'on') {
-    isTest = true;
+    prodilloState.isTest = true;
     bot.sendMessage(msg.chat.id, '🟢 TEST ON');
   } else if (test === 'off') {
-    isTest = false;
+    prodilloState.isTest = false;
     bot.sendMessage(msg.chat.id, '🔴 TEST OFF');
   } else if (test === 'win') {
-    isWin = true;
+    prodilloState.isWin = true;
     bot.sendMessage(msg.chat.id, '🏆 WIN ON');
   } else {
     bot.sendMessage(msg.chat.id, `¡Ingresaste cualquier cosa loko!\n\n/test on - Activa el modo de prueba\n/test off - Desactiva el modo de prueba'\n/test win - Activa el evento de victoria`);
@@ -352,31 +350,17 @@ bot.onText(/\/prodillo(\s|\@botillo21_bot\s)(.+)/, async (msg, match) => {
   const predictStr = (match as RegExpMatchArray)[2];
   const predict = Math.round(Number(predictStr));
   
-  callProdillo(bot, msg.chat.id, userId!, user!, predict, prodillos, bitcoinPrices)
+  getProdillo(bot, msg.chat.id, userId!, user!, predict, prodillos, bitcoinPrices)
 });
 
 // When user writes /lista, sends a list of all registered prodillos
 bot.onText(/\/listilla/, async (msg) => {
-  callListilla(bot, msg.chat.id, prodillos, bitcoinPrices)
+  getListilla(bot, msg.chat.id, prodillos, bitcoinPrices)
 });
 
 // When user writes /trofeillos, sends a list of all winners of the game and the number of trophys of each one
 bot.onText(/\/trofeillos/, (msg) => {
-  callTrofeillos(bot, msg.chat.id)
-  /*// Read trofeillos.json to get the list of winners
-  if (!fs.existsSync(TROFEILLOS_FILE)) {
-    fs.writeFileSync(TROFEILLOS_FILE, JSON.stringify(trofeillos, null, 2))
-  }
-  try {
-  trofeillos = JSON.parse(fs.readFileSync(TROFEILLOS_FILE, 'utf-8'));
-  } catch (e) {
-  throw new Error(`CRITICAL ERROR: Couldn't read trofeillos.json file`);
-  }
-  let mensaje = "";
-  for (const [id, data] of Object.entries(trofeillos)) {
-    mensaje += `\n- ${data.champion}: ${data.trofeillo}`;
-  }
-  bot.sendMessage(msg.chat.id, `<pre><b>SALA DE TROFEILLOS</b>\n\nUltimo campeón: ${prodilloState.winnerName}\nCampeón: 🏆 [nro. de bloque]\n------------------------------------------------------------------------------${mensaje || 'No hay ganadores aún.'}</pre>`, { parse_mode: 'HTML' });*/
+  getTrofeillos(bot, msg.chat.id)
 });
 
 // Defines a function that creates an invoice for donations

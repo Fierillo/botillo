@@ -18,6 +18,7 @@ let prodilloState = {
   isProdilleable: true,
   isWon: false,
   isWin: false,
+  isTest: false,
 };
 
 type BitcoinPriceTracker = {
@@ -121,16 +122,13 @@ async function prodilloInterval(bot: TelegramBot, telegramChats: { [key: number]
       // Save the new trophy status in a JSON file
       fs.writeFileSync(TROFEILLOS_FILE, JSON.stringify(trofeillos, null, 2));
 
-      // Restart max BTC price for the nex round
+      // Restart bitcoinMax and bitcoinMaxBlock values from bot cache
       bitcoinPrices.bitcoinMax = 0;
+      bitcoinPrices.bitcoinMaxBlock = 0;
       
-      // Wipe bitcoin.json file
-      try {
-        fs.writeFileSync(BITCOIN_FILE, JSON.stringify({}, null, 2));
-        console.log('bitcoin.json file wiped successfully');
-      } catch (err) {
-        console.error('Failed to wipe bitcoin.json file');
-      }
+      // Wipe bitcoinMax and bitcoinMaxBlock values from bitcoin.json file
+      await saveValues('bitcoinMax', bitcoinPrices.bitcoinMax);
+      await saveValues('bitcoinMaxBlock', bitcoinPrices.bitcoinMaxBlock);
       
       // Wipe prodillos.json file
       try {
@@ -140,6 +138,7 @@ async function prodilloInterval(bot: TelegramBot, telegramChats: { [key: number]
         console.error('Failed to wipe prodillos.json file');
       }
       
+      // Add Hal Finney prediction to prodillos.json file
       try {
         fs.writeFileSync(PRODILLOS_FILE, JSON.stringify({'0': {user: 'Hal Finney', predict: 10000000}}, null, 2));
         console.log('Hal Finney prediction added to prodillos.json file');
@@ -154,7 +153,7 @@ async function prodilloInterval(bot: TelegramBot, telegramChats: { [key: number]
   }
 };
 
-async function callProdillo(bot:TelegramBot, chatId:number, userId:number, user:string, predict:number, prodillos: Record<string, { user: string; predict: number; }>, bitcoinPrices: BitcoinPriceTracker) {
+async function getProdillo(bot:TelegramBot, chatId:number, userId:number, user:string, predict:number, prodillos: Record<string, { user: string; predict: number; }>, bitcoinPrices: BitcoinPriceTracker) {
   // Calls deadline function and stores in local variables
   const { winnerDeadline, prodilleableDeadline } = await deadline();
   
@@ -205,7 +204,7 @@ async function callProdillo(bot:TelegramBot, chatId:number, userId:number, user:
   } else await bot.sendMessage(chatId, '¡Ingresaste cualquier cosa loko!\n\n/prodillo <numero>');
 }
 
-async function callListilla(bot:TelegramBot, chatId:number, prodillos: Record<string, { user: string; predict: number; }>, bitcoinPrices: BitcoinPriceTracker) {
+async function getListilla(bot:TelegramBot, chatId:number, prodillos: Record<string, { user: string; predict: number; }>, bitcoinPrices: BitcoinPriceTracker) {
   try {
     // Read prodillos.json file and store it in a local variable
     prodillos = JSON.parse(await fs.promises.readFile(PRODILLOS_FILE, 'utf-8'));
@@ -214,6 +213,7 @@ async function callListilla(bot:TelegramBot, chatId:number, prodillos: Record<st
     try {
       const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf-8'));
       bitcoinPrices.bitcoinMax = data.bitcoinMax;
+      console.log(bitcoinPrices.bitcoinMax);
     } catch (error) {
       console.error('error trying to read bitcoin.json');
     }
@@ -245,7 +245,7 @@ async function callListilla(bot:TelegramBot, chatId:number, prodillos: Record<st
   }
 }
 
-async function callTrofeillos(bot:TelegramBot, chatId:number) {
+async function getTrofeillos(bot:TelegramBot, chatId:number) {
   // Read trofeillos.json to get the list of winners
   if (!fs.existsSync(TROFEILLOS_FILE)) {
     fs.writeFileSync(TROFEILLOS_FILE, JSON.stringify(trofeillos, null, 2))
@@ -262,4 +262,4 @@ async function callTrofeillos(bot:TelegramBot, chatId:number) {
   bot.sendMessage(chatId, `<pre><b>SALA DE TROFEILLOS</b>\n\nUltimo campeón: ${prodilloState.winnerName}\nCampeón: 🏆 [nro. de bloque]\n------------------------------------------------------------------------------${mensaje || 'No hay ganadores aún.'}</pre>`, { parse_mode: 'HTML' });
 }
 
-export { saveValues, prodilloInterval, callProdillo, callListilla, callTrofeillos, prodilloState };
+export { saveValues, prodilloInterval, getProdillo, getListilla, getTrofeillos, prodilloState };
