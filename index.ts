@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 import { createInvoiceREST } from './src/modules/donacioncilla';
 import { getListilla, getProdillo, getTrofeillos, prodilloInterval, saveValues, prodilloState } from './src/modules/prodillo';
-import { getBitcoinPrices } from './src/modules/bitcoinPrices';
+import { bitcoinPrices, getBitcoinPrices, loadValues, trackBitcoinPrice } from './src/modules/bitcoinPrices';
 
 // Load environment variables from .env file
 config();
@@ -26,8 +26,7 @@ const client = new Client({
 // CONSTANTS
 const PRODILLOS_FILE = path.join(__dirname, '/src/db/prodillos.json');
 const BITCOIN_FILE = path.join(__dirname, '/src/db/bitcoin.json');
-// Set time interval for automatic bot updates
-const TIME_INTERVAL = 1000*210;
+
 // Discord bot token
 client.login(process.env.DISCORD_TOKEN_ORIGINAL!);
 // Telegram bot token
@@ -54,13 +53,6 @@ let telegramChats: { [key: number]: string } = {};
 let discordChannels: { [key: string]: TextChannel } = {};
 let prodillos: Record<string, { user: string; predict: number }> = {};
 export { prodillos }
-let bitcoinPrices = {
-  bitcoinATH: 0,
-  lastReportedMax: 0,
-  lastReportedMin: Infinity,
-  bitcoinMax: 0,
-  bitcoinMaxBlock: 0,
-};
 
 // Restores prodillos from JSON file
 function loadProdillos() {
@@ -87,6 +79,7 @@ client.on('ready', async () => {
       }
     });
   });
+  
   // Starts main functions
   await loadProdillos();
   await loadValues();
@@ -94,116 +87,6 @@ client.on('ready', async () => {
   setTimeout(() => prodilloInterval(bot, telegramChats, prodillos, bitcoinPrices), 420);
   setTimeout(seViene, Math.random() * ((69 - 1)*3600*1000) + 1 * 3600*1000); // Interval between 1 and 69 hours
 });
-
-// Restores Bitcoin prices from bitcoin.json file
-async function loadValues() {
-  if (!fs.existsSync(BITCOIN_FILE)) {
-    fs.writeFileSync(BITCOIN_FILE, JSON.stringify(bitcoinPrices, null, 2));
-  }
-  try {
-    const data: typeof bitcoinPrices = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf-8'));
-    if (!data.lastReportedMax) {data.lastReportedMax = 0}
-    if (!data.lastReportedMin) {data.lastReportedMin = Infinity}
-    if (!data.bitcoinMax) {data.bitcoinMax = 0}
-    if (!data.bitcoinATH) {data.bitcoinATH = 0}
-    if (!data.bitcoinMaxBlock) {data.bitcoinMaxBlock = 0}
-    await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
-    bitcoinPrices = {
-      lastReportedMax: data.lastReportedMax,
-      lastReportedMin: data.lastReportedMin,
-      bitcoinMax: data.bitcoinMax,
-      bitcoinATH: data.bitcoinATH,
-      bitcoinMaxBlock: data.bitcoinMaxBlock,
-    }
-    console.log('Initial values with bitcoin.json updated successfully:', data);
-  } catch (e) {
-    throw new Error(`CRITICAL ERROR: Couldn't read bitcoin.json file`);
-  }
-}
-
-// Define function that tracks the Bitcoin price at regular intervals and report the max and min only if values surpass old reported values
-async function trackBitcoinPrice() {
-  while (true) {
-    try {
-      const { min, max } = await getBitcoinPrices();
-      // If price is higher than ATH...
-      //console.log('trackBitcoinPrice.start called')
-      if (max > bitcoinPrices.bitcoinATH) {
-        bitcoinPrices.bitcoinATH = max;
-        
-        // Load bitcoin.json file and update bitcoinATH
-        await saveValues('bitcoinATH', bitcoinPrices.bitcoinATH);
-
-        // Sends ATH message to all Telegram and Discord chats
-        Object.keys(telegramChats).forEach(async chatId => 
-          (await hasSendPermission(chatId)) 
-          ? bot.sendMessage(Number(chatId),`🚀 NUEVO ATH DE ₿: $${bitcoinPrices.bitcoinATH}`) 
-          : null);
-        Object.values(discordChannels).forEach(channel => 
-          channel.send(`🚀 NUEVO ATH DE ₿: $${bitcoinPrices.bitcoinATH}`));
-      } 
-      // If price is higher than reported max...
-      else if (max > bitcoinPrices.lastReportedMax && max < bitcoinPrices.bitcoinATH) {
-        bitcoinPrices.lastReportedMax = max;
-
-        // Load bitcoin.json file and update lastReportedMax
-        await saveValues('lastReportedMax', bitcoinPrices.lastReportedMax);
-        
-        // And sends daily high message to all Telegram and Discord chats
-        Object.keys(telegramChats).forEach(async chatId => 
-          (await hasSendPermission(chatId)) 
-          ? bot.sendMessage(Number(chatId),`🦁 nuevo máximo diario de ₿: $${bitcoinPrices.lastReportedMax}`) 
-          : null);
-        Object.values(discordChannels).forEach(channel => 
-          channel.send(`🦁 nuevo máximo diario de ₿: $${bitcoinPrices.lastReportedMax}`));
-      }
-      // If price is lower than reported min...
-      else if (min < bitcoinPrices.lastReportedMin) {
-        bitcoinPrices.lastReportedMin = min;
-        
-        // Load bitcoin.json file and update lastReportedMin
-        await saveValues('lastReportedMin', bitcoinPrices.lastReportedMin);
-        
-        // Sends daily low message to all Telegram and Discord chats
-        Object.keys(telegramChats).forEach(async chatId => 
-          (await hasSendPermission(chatId)) 
-          ? bot.sendMessage(Number(chatId),`🐻 nuevo mínimo diario de ₿: $${bitcoinPrices.lastReportedMin}`) 
-          : null);
-        Object.values(discordChannels).forEach(channel => 
-          channel.send(`🐻 nuevo mínimo diario de ₿: $${bitcoinPrices.lastReportedMin}`));
-      } else {
-        //console.log('trackBitcoinPrice.end called');
-      }
-    } catch (error) {
-      console.error('trackBitcoinPrice() error');
-    }
-    await new Promise(resolve => setTimeout(resolve, TIME_INTERVAL));
-  }
-};
-
-// Function to check if bot has permission to send messages
-async function hasSendPermission(chatId: string) {
-  try {
-    const botInfo = await bot.getMe();
-    const chatMember = await bot.getChatMember(chatId, botInfo.id);
-    
-    // If the bot is 'restricted', we check if it can send messages.
-    if (chatMember.status === 'restricted') {
-      return chatMember.can_send_messages;
-    }
-    
-    // If the bot is 'member', 'administrator' or 'creator', it has permission.
-    if (['member', 'administrator', 'creator'].includes(chatMember.status)) {
-      return true;
-    }
-    
-    // In any other case, the bot doesn't have permission.
-    return false;
-  } catch (error) {
-    console.error(`Error verificando permisos en el chat ${chatId}:`, error);
-    return false;
-  }
-}
 
 // Sends SE VIENE message at random intervals to all channels and chats where bot is
 function seViene() {
