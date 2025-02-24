@@ -2,3 +2,4 @@
 node_modules/
 src/db
 src/tls.cert
+src/modules/test.ts

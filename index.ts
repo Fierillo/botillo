@@ -9,6 +9,7 @@ const path = require('path');
 import { createInvoiceREST } from './src/modules/donacioncilla';
 import { getListilla, getProdillo, getTrofeillos, prodilloInterval, saveValues, prodilloState } from './src/modules/prodillo';
 import { bitcoinPrices, getBitcoinPrices, loadValues, trackBitcoinPrice } from './src/modules/bitcoinPrices';
+import { getTest } from "./src/modules/test";
 
 // Load environment variables from .env file
 config();
@@ -216,21 +217,13 @@ bot.onText(/(?<=\s|^)(eth|solana|sol |bcash|bch |polkadot|dot |cardano|ada )\w*/
   }
 });
 
-/*bot.onText(/\/test/, (msg) => {
-  const test = msg.text?.split('/test ')[1];
-  if (test === 'on') {
-    prodilloState.isTest = true;
-    bot.sendMessage(msg.chat.id, '🟢 TEST ON');
-  } else if (test === 'off') {
-    prodilloState.isTest = false;
-    bot.sendMessage(msg.chat.id, '🔴 TEST OFF');
-  } else if (test === 'win') {
-    prodilloState.isWin = true;
-    bot.sendMessage(msg.chat.id, '🏆 WIN ON');
-  } else {
-    bot.sendMessage(msg.chat.id, `¡Ingresaste cualquier cosa loko!\n\n/test on - Activa el modo de prueba\n/test off - Desactiva el modo de prueba'\n/test win - Activa el evento de victoria`);
+bot.onText(/\/test/, (msg) => {
+  try {
+    getTest(bot, msg)
+  } catch (error) {    
+    console.error('error in getTest()');
   }
-});*/
+});
 
 // Stores user predictions of BTC price in a JSON file and replies a reminder with the deadline
 bot.onText(/\/prodillo(\s|\@botillo21_bot\s)(.+)/, async (msg, match) => {
