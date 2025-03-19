@@ -9,7 +9,6 @@ const path = require('path');
 import { createInvoiceREST } from './src/modules/donacioncilla';
 import { getListilla, getProdillo, getTrofeillos, prodilloInterval, saveValues, prodilloState } from './src/modules/prodillo';
 import { bitcoinPrices, getBitcoinPrices, loadValues, trackBitcoinPrice } from './src/modules/bitcoinPrices';
-import { getTest } from "./src/modules/test";
 
 // Load environment variables from .env file
 config();
@@ -217,13 +216,13 @@ bot.onText(/(?<=\s|^)(eth|solana|sol |bcash|bch |polkadot|dot |cardano|ada )\w*/
   }
 });
 
-bot.onText(/\/test/, (msg) => {
+/*bot.onText(/\/test/, (msg) => {
   try {
     getTest(bot, msg)
   } catch (error) {    
     console.error('error in getTest()');
   }
-});
+});*/
 
 // Stores user predictions of BTC price in a JSON file and replies a reminder with the deadline
 bot.onText(/\/prodillo(\s|\@botillo21_bot\s)(.+)/, async (msg, match) => {
