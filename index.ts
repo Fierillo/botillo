@@ -7,8 +7,8 @@ import TelegramBot from 'node-telegram-bot-api';
 const fs = require('fs');
 const path = require('path');
 import { createInvoiceREST } from './src/modules/donacioncilla';
-import { getListilla, getProdillo, getTrofeillos, prodilloInterval, saveValues, prodilloState } from './src/modules/prodillo';
-import { bitcoinPrices, getBitcoinPrices, loadValues, trackBitcoinPrice } from './src/modules/bitcoinPrices';
+import { getListilla, getProdillo, getTrofeillos, prodilloInterval } from './src/modules/prodillo';
+import { bitcoinPrices, getBitcoinPrices, loadValues, trackBitcoinPrice, telegramChats, discordChannels } from './src/modules/bitcoinPrices';
 
 // Load environment variables from .env file
 config();
@@ -41,7 +41,6 @@ const bot = new TelegramBot(TELEGRAM_BOT_TOKEN!, {
 // If bot receives ECONNRESET error, it will ignore it
 bot.on('polling_error', (error) => {
   if (error && error.message && error.message.includes('ECONNRESET')) {
-    // Ignoramos el error ECONNRESET
     console.warn('ECONNRESET detected... Omitting.');
   } else {
     console.error('Polling error:', error);
@@ -49,8 +48,6 @@ bot.on('polling_error', (error) => {
 });
 
 // Define global variables
-let telegramChats: { [key: number]: string } = {};
-let discordChannels: { [key: string]: TextChannel } = {};
 let prodillos: Record<string, { user: string; predict: number }> = {};
 export { prodillos }
 
