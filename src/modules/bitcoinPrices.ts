@@ -86,7 +86,7 @@ async function trackBitcoinPrice(bot: TelegramBot) {
             channel.send(`🚀 NUEVO ATH DE ₿: $${bitcoinPrices.bitcoinATH}`));
         } 
         // If price is higher than reported max...
-        else if (max > bitcoinPrices.lastReportedMax && max < bitcoinPrices.bitcoinATH) {
+        else if (max > bitcoinPrices.lastReportedMax) {
             bitcoinPrices.lastReportedMax = max;
 
             // Load bitcoin.json file and update lastReportedMax
@@ -114,9 +114,7 @@ async function trackBitcoinPrice(bot: TelegramBot) {
             : null);
             Object.values(discordChannels).forEach(channel => 
             channel.send(`🐻 nuevo mínimo diario de ₿: $${bitcoinPrices.lastReportedMin}`));
-        } else {
-            //console.log('trackBitcoinPrice.end called');
-        }
+        } 
         } catch (error) {
         console.error('trackBitcoinPrice() error');
         }
@@ -126,6 +124,7 @@ async function trackBitcoinPrice(bot: TelegramBot) {
 
 // Function to check if bot has permission to send messages
 async function hasSendPermission(chatId: string, bot: TelegramBot) {
+  if (!bot) {return console.log('bot is undefined in hasSendPermission()')}
   try {
     const botInfo = await bot.getMe();
     const chatMember = await bot.getChatMember(chatId, botInfo.id);

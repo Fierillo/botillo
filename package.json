@@ -9,7 +9,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@grpc/grpc-js": "^1.12.6",
     "@types/node-telegram-bot-api": "^0.64.7",

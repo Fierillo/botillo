@@ -7,7 +7,7 @@ import TelegramBot from 'node-telegram-bot-api';
 const fs = require('fs');
 const path = require('path');
 import { createInvoiceREST } from './src/modules/donacioncilla';
-import { getListilla, getProdillo, getTrofeillos, prodilloInterval } from './src/modules/prodillo';
+import { getListilla, getProdillo, getTrofeillos, prodilloInterval, saveValues } from './src/modules/prodillo';
 import { bitcoinPrices, getBitcoinPrices, loadValues, trackBitcoinPrice, telegramChats, discordChannels } from './src/modules/bitcoinPrices';
 
 // Load environment variables from .env file
@@ -58,6 +58,7 @@ function loadProdillos() {
   }
   try {
   prodillos = JSON.parse(fs.readFileSync(PRODILLOS_FILE, 'utf-8'));
+  return console.log('prodillos.json values loaded successfully!')
   } catch (e) {
   throw new Error(`CRITICAL ERROR: Couldn't read prodillos.json file`);
   }
@@ -80,7 +81,9 @@ client.on('ready', async () => {
   // Starts main functions
   await loadProdillos();
   await loadValues();
-  setTimeout(trackBitcoinPrice, 210);
+  setTimeout(async () => {
+    await trackBitcoinPrice(bot);
+}, 210);
   setTimeout(() => prodilloInterval(bot, telegramChats, prodillos, bitcoinPrices), 420);
   setTimeout(seViene, Math.random() * ((69 - 1)*3600*1000) + 1 * 3600*1000); // Interval between 1 and 69 hours
 });
@@ -102,7 +105,7 @@ function seViene() {
 };
 
 // Define cron job to reset daily highs and lows at midnight (UTC = 00:00)
-schedule.scheduleJob('0 21 * * *', async () => { // 21:00 at local time (UTC-3) = 00:00 UTC
+schedule.scheduleJob('00 21 * * *', async () => { // 21:00 at local time (UTC-3) = 00:00 UTC
   bitcoinPrices.lastReportedMax = 0;
   bitcoinPrices.lastReportedMin = Infinity;
   
@@ -110,7 +113,8 @@ schedule.scheduleJob('0 21 * * *', async () => { // 21:00 at local time (UTC-3) 
   const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf8'));
   data.lastReportedMax = bitcoinPrices.lastReportedMax;
   data.lastReportedMin = bitcoinPrices.lastReportedMin;
-  await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
+  await saveValues('lastReportedMax', bitcoinPrices.lastReportedMax);
+  await saveValues('lastReportedMin', bitcoinPrices.lastReportedMin);
   
   // Then send reset message to all Discord channels...
   for (const channelId in discordChannels) {
