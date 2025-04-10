@@ -229,13 +229,13 @@ bot.onText(/(?<=\s|^)(eth|solana|sol |bcash|bch |polkadot|dot |cardano|ada )\w*/
   }
 });
 
-bot.onText(/\/test/, (msg) => {
+/*bot.onText(/\/test/, (msg) => {
   try {
     getTest(bot, msg)
   } catch (error) {    
     console.error('error in getTest()');
   }
-});
+});*/
 
 // Stores user predictions of BTC price in a JSON file and replies a reminder with the deadline
 bot.onText(/\/prodillo(\s|\@botillo21_bot\s)(.+)/, async (msg, match) => {
