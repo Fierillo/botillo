@@ -6,7 +6,7 @@ import path from "path";
 const fs = require('fs');
 
 // Set time interval for trackBitcoinPrice()
-const TIME_INTERVAL = 1000*420;
+const TIME_INTERVAL = 1000*100;
 
 const BITCOIN_FILE = path.join(__dirname, '../db/bitcoin.json');
 
@@ -22,21 +22,26 @@ let telegramChats: { [key: number]: string } = {};
 let discordChannels: { [key: string]: TextChannel } = {};
 
 // Define function that fetches the Bitcoin price using Binance API
-async function getBitcoinPrices () {
-    //console.log('getBitcoinPrices() called');
-    try {  
-        const { data } = await axios.get<{ last: string, low: string, high: string }>('https://www.bitstamp.net/api/v2/ticker/btcusd');
-        lastPrices = {
-        price: parseInt(data.last),
-        min: parseInt(data.low),
-        max: parseInt(data.high),
-        }
-        return lastPrices;
-    } catch (error) {
-        console.error('getBitcoinPrices() error');
-        return lastPrices;
-    }
-};
+async function getBitcoinPrices() {
+  try {
+    const { data } = await axios.get<{ last: string, low: string, high: string }>(
+      'https://www.bitstamp.net/api/v2/ticker/btcusd',
+      { timeout: 10000 } // 10 segundos máximo
+    );
+    lastPrices = {
+      price: parseInt(data.last),
+      min: parseInt(data.low),
+      max: parseInt(data.high),
+    };
+    return lastPrices;
+  } catch (error: any) {
+    const errorMsg = error.response
+      ? `Bitstamp API falló: ${error.response.status}`
+      : `getBitcoinPrices() error: ${error.message}`;
+    console.error(errorMsg);
+    throw new Error(errorMsg);
+  }
+}
 
 // Restores Bitcoin prices from bitcoin.json file
 async function loadValues() {
@@ -66,63 +71,66 @@ async function loadValues() {
 
 // Define function that tracks the Bitcoin price at regular intervals and report the max and min only if values surpass old reported values
 async function trackBitcoinPrice(bot: TelegramBot) {
-    while (true) {
-        try {
-        const { min, max } = await getBitcoinPrices();
-        // If price is higher than ATH...
-        //console.log('trackBitcoinPrice.start called')
-        if (max > bitcoinPrices.bitcoinATH) {
-            bitcoinPrices.bitcoinATH = max;
-            
-            // Load bitcoin.json file and update bitcoinATH
-            await saveValues('bitcoinATH', bitcoinPrices.bitcoinATH);
+  let retryCount = 0;
+  const maxRetries = 5;
 
-            // Sends ATH message to all Telegram and Discord chats
-            Object.keys(telegramChats).forEach(async chatId => 
-            (await hasSendPermission(chatId, bot)) 
-            ? bot.sendMessage(Number(chatId),`🚀 NUEVO ATH DE ₿: $${bitcoinPrices.bitcoinATH}`) 
-            : null);
-            Object.values(discordChannels).forEach(channel => 
-            channel.send(`🚀 NUEVO ATH DE ₿: $${bitcoinPrices.bitcoinATH}`));
-        } 
-        // If price is higher than reported max...
-        else if (max > bitcoinPrices.lastReportedMax && max < bitcoinPrices.bitcoinATH) {
-            bitcoinPrices.lastReportedMax = max;
+  while (true) {
+    try {
+      const { min, max } = await getBitcoinPrices();
+      retryCount = 0;
 
-            // Load bitcoin.json file and update lastReportedMax
-            await saveValues('lastReportedMax', bitcoinPrices.lastReportedMax);
-            
-            // And sends daily high message to all Telegram and Discord chats
-            Object.keys(telegramChats).forEach(async chatId => 
-            (await hasSendPermission(chatId, bot)) 
-            ? bot.sendMessage(Number(chatId),`🦁 nuevo máximo diario de ₿: $${bitcoinPrices.lastReportedMax}`) 
-            : null);
-            Object.values(discordChannels).forEach(channel => 
-            channel.send(`🦁 nuevo máximo diario de ₿: $${bitcoinPrices.lastReportedMax}`));
-        }
-        // If price is lower than reported min...
-        else if (min < bitcoinPrices.lastReportedMin) {
-            bitcoinPrices.lastReportedMin = min;
-            
-            // Load bitcoin.json file and update lastReportedMin
-            await saveValues('lastReportedMin', bitcoinPrices.lastReportedMin);
-            
-            // Sends daily low message to all Telegram and Discord chats
-            Object.keys(telegramChats).forEach(async chatId => 
-            (await hasSendPermission(chatId, bot)) 
-            ? bot.sendMessage(Number(chatId),`🐻 nuevo mínimo diario de ₿: $${bitcoinPrices.lastReportedMin}`) 
-            : null);
-            Object.values(discordChannels).forEach(channel => 
-            channel.send(`🐻 nuevo mínimo diario de ₿: $${bitcoinPrices.lastReportedMin}`));
-        } else {
-            //console.log('trackBitcoinPrice.end called');
-        }
-        } catch (error) {
-        console.error('trackBitcoinPrice() error');
-        }
-        await new Promise(resolve => setTimeout(resolve, TIME_INTERVAL));
+      // If price hits a new ATH
+      if (max > bitcoinPrices.bitcoinATH) {
+        bitcoinPrices.bitcoinATH = max;
+        await saveValues('bitcoinATH', bitcoinPrices.bitcoinATH);
+        await notifyAll(bot, `🚀 NUEVO ATH DE ₿: $${bitcoinPrices.bitcoinATH}`);
+      } 
+      // If price hits a new daily max
+      else if (max > bitcoinPrices.lastReportedMax && max < bitcoinPrices.bitcoinATH) {
+        bitcoinPrices.lastReportedMax = max;
+        await saveValues('lastReportedMax', bitcoinPrices.lastReportedMax);
+        await notifyAll(bot, `🦁 nuevo máximo diario de ₿: $${bitcoinPrices.lastReportedMax}`);
+      } 
+      // If price hits a new daily min
+      else if (min < bitcoinPrices.lastReportedMin) {
+        bitcoinPrices.lastReportedMin = min;
+        await saveValues('lastReportedMin', bitcoinPrices.lastReportedMin);
+        await notifyAll(bot, `🐻 nuevo mínimo diario de ₿: $${bitcoinPrices.lastReportedMin}`);
+      }
+
+      await new Promise(resolve => setTimeout(resolve, TIME_INTERVAL));
+    } catch (error: any) {
+      console.error('trackBitcoinPrice() error:', error.message);
+      retryCount++;
+      // Retry logic with exponential backoff until 5 retries, then pause for 5 minutes
+      if (retryCount <= maxRetries) {
+        const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
+        console.warn(`Retrying in ${delay/1000}s (try ${retryCount}/${maxRetries})...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        console.error('Reached max retry, pause for 5m...');
+        await new Promise(resolve => setTimeout(resolve, 5 * 60 * 1000));
+        retryCount = 0;
+      }
     }
-};
+  }
+}
+
+// Helper para enviar mensajes a todos los chats
+async function notifyAll(bot: TelegramBot, message: string) {
+  for (const chatId of Object.keys(telegramChats)) {
+    if (await hasSendPermission(chatId, bot)) {
+      await bot.sendMessage(Number(chatId), message).catch(err =>
+        console.error(`Fallo al enviar a Telegram ${chatId}:`, err.message)
+      );
+    }
+  }
+  for (const channel of Object.values(discordChannels)) {
+    await channel.send(message).catch(err =>
+      console.error(`Fallo al enviar a Discord ${channel.id}:`, err.message)
+    );
+  }
+}
 
 // Function to check if bot has permission to send messages
 async function hasSendPermission(chatId: string, bot: TelegramBot) {

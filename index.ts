@@ -9,6 +9,7 @@ const path = require('path');
 import { createInvoiceREST } from './src/modules/donacioncilla';
 import { getListilla, getProdillo, getTrofeillos, prodilloInterval } from './src/modules/prodillo';
 import { bitcoinPrices, getBitcoinPrices, loadValues, trackBitcoinPrice, telegramChats, discordChannels } from './src/modules/bitcoinPrices';
+import { getTest } from "./src/modules/test";
 
 // Load environment variables from .env file
 config();
@@ -38,13 +39,22 @@ const bot = new TelegramBot(TELEGRAM_BOT_TOKEN!, {
   }
 });
 
-// If bot receives ECONNRESET error, it will ignore it
+// Telegram bot error handling
 bot.on('polling_error', (error) => {
-  if (error && error.message && error.message.includes('ECONNRESET')) {
-    console.warn('ECONNRESET detected... Omitting.');
+  if (error.message.includes('ECONNRESET')) {
+    console.warn('ECONNRESET detected, retrying in 5s...');
+    setTimeout(() => bot.startPolling(), 5000);
   } else {
-    console.error('Polling error:', error);
+    console.error('Error en polling:', error.message);
   }
+});
+
+// Another error handling
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught exception:', error.message);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled promise rejection:', reason);
 });
 
 // Define global variables
@@ -80,7 +90,7 @@ client.on('ready', async () => {
   // Starts main functions
   await loadProdillos();
   await loadValues();
-  setTimeout(trackBitcoinPrice, 210);
+  trackBitcoinPrice(bot);
   setTimeout(() => prodilloInterval(bot, telegramChats, prodillos, bitcoinPrices), 420);
   setTimeout(seViene, Math.random() * ((69 - 1)*3600*1000) + 1 * 3600*1000); // Interval between 1 and 69 hours
 });
@@ -103,8 +113,10 @@ function seViene() {
 
 // Define cron job to reset daily highs and lows at midnight (UTC = 00:00)
 schedule.scheduleJob('0 21 * * *', async () => { // 21:00 at local time (UTC-3) = 00:00 UTC
-  bitcoinPrices.lastReportedMax = 0;
-  bitcoinPrices.lastReportedMin = Infinity;
+  const { max, min } = await getBitcoinPrices();
+  
+  bitcoinPrices.lastReportedMax = max;
+  bitcoinPrices.lastReportedMin = min;
   
   // Load bitcoin.json file and update lastReportedMax/Min
   const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf8'));
@@ -114,11 +126,11 @@ schedule.scheduleJob('0 21 * * *', async () => { // 21:00 at local time (UTC-3) 
   
   // Then send reset message to all Discord channels...
   for (const channelId in discordChannels) {
-    discordChannels[channelId].send(`¡GN humanos!\n🔄 reiniciando máximos y mínimos diarios...`);
+    discordChannels[channelId].send(`¡GN humanos!\n🦁 El máximo de ₿ del dia fue: $${max}\n🐻 El mínimo fue: $${min}\n🔺 La variación del dia fue: $${max-min} (${(100*(max/min)-100).toFixed(1)}%)`);
   }
   // And to all Telegram chats...
   for (const chatId in telegramChats) {
-      bot.sendMessage(chatId, `¡GN humanos!\n🔄 reiniciando máximos y mínimos diarios...`);
+    bot.sendMessage(chatId, `¡GN humanos!\n🦁 El máximo de ₿ del dia fue: $${max}\n🐻 El mínimo fue: $${min}\n🔺 La variación del dia fue: $${max-min} (${(100*(max/min)-100).toFixed(1)}%)`);
   }
 });
 
@@ -160,23 +172,25 @@ bot.on('message', (msg) => {
 
 // Send Bitcoin price when user writes /precio
 bot.onText(/\/precio(@botillo21_bot)?/, async (msg) => {
+  const chatId = msg.chat.id;
   try {
     const { price } = await getBitcoinPrices();
-    bot.sendMessage(msg.chat.id, `Precio actual de ₿: $${price} (${(100*(price/bitcoinPrices.bitcoinATH)).toFixed(1)}% del ATH)`);
+    await bot.sendMessage(chatId, `Precio actual de ₿: $${price} (${(100 * (price / bitcoinPrices.bitcoinATH)).toFixed(1)}% del ATH)`);
   } catch (error) {
-    bot.sendMessage(msg.chat.id, 'Lo siento, hubo un error al obtener el precio de Bitcoin.');
-    console.error('error in Telegram command /precio');
+    console.error(`Error en /precio para chat ${chatId}`);
+    await bot.sendMessage(chatId, '🚨 Error al traer el precio de ₿, probá de nuevo en un rato.');
   }
 });
 
 // Send High and Low prices when user writes /hilo
 bot.onText(/\/hilo(@botillo21_bot)?/, async (msg) => {
-  try {  
+  const chatId = msg.chat.id;
+  try {
     const { max, min } = await getBitcoinPrices();
-    bot.sendMessage(msg.chat.id, `🦁 máximo diario de ₿: $${max} (${(100*(max/bitcoinPrices.bitcoinATH)).toFixed(1)}% del ATH)\n🐻 mínimo diario de ₿: $${min}\n🔺 Volatilidad diaria: $${max-min} (${(100*(max/min)-100).toFixed(1)}%)\n🚀 ATH de ₿: $${bitcoinPrices.bitcoinATH}`);
+    await bot.sendMessage(chatId, `🦁 máximo diario de ₿: $${max} (${(100 * (max / bitcoinPrices.bitcoinATH)).toFixed(1)}% del ATH)\n🐻 mínimo diario de ₿: $${min}\n🔺 Volatilidad diaria: $${max - min} (${(100 * (max / min) - 100).toFixed(1)}%)\n🚀 ATH de ₿: $${bitcoinPrices.bitcoinATH}`);
   } catch (error) {
-    bot.sendMessage(msg.chat.id, 'Lo siento, hubo un error al obtener el precio de Bitcoin.');
-    console.error('error in Telegram command /hilo');
+    console.error(`Error en /hilo para chat ${chatId}`);
+    await bot.sendMessage(chatId, '🚨 Error al traer el hilo de ₿, probá de nuevo en un rato.');
   }
 });
 
@@ -213,13 +227,13 @@ bot.onText(/(?<=\s|^)(eth|solana|sol |bcash|bch |polkadot|dot |cardano|ada )\w*/
   }
 });
 
-/*bot.onText(/\/test/, (msg) => {
+bot.onText(/\/test/, (msg) => {
   try {
     getTest(bot, msg)
   } catch (error) {    
     console.error('error in getTest()');
   }
-});*/
+});
 
 // Stores user predictions of BTC price in a JSON file and replies a reminder with the deadline
 bot.onText(/\/prodillo(\s|\@botillo21_bot\s)(.+)/, async (msg, match) => {
