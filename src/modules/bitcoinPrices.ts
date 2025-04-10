@@ -6,7 +6,7 @@ import path from "path";
 const fs = require('fs');
 
 // Set time interval for trackBitcoinPrice()
-const TIME_INTERVAL = 1000*100;
+const TIME_INTERVAL = 1000*420;
 
 const BITCOIN_FILE = path.join(__dirname, '../db/bitcoin.json');
 
