@@ -132,26 +132,40 @@ async function notifyAll(bot: TelegramBot, message: string) {
   }
 }
 
-// Function to check if bot has permission to send messages
-async function hasSendPermission(chatId: string, bot: TelegramBot) {
+// Function to check if bot has permission to send messages and leave if it can't
+async function hasSendPermission(chatId: string, bot: TelegramBot): Promise<boolean> {
   try {
     const botInfo = await bot.getMe();
     const chatMember = await bot.getChatMember(chatId, botInfo.id);
     
-    // If the bot is 'restricted', we check if it can send messages.
+    // If the bot is 'restricted', check if it can send messages
     if (chatMember.status === 'restricted') {
+      if (!chatMember.can_send_messages) {
+        console.log(`Bot restringido sin permisos en chat ${chatId}, abandonando...`);
+        await bot.leaveChat(chatId);
+        return false;
+      }
       return chatMember.can_send_messages;
     }
     
-    // If the bot is 'member', 'administrator' or 'creator', it has permission.
+    // If the bot is 'member', 'administrator' or 'creator', it has permission
     if (['member', 'administrator', 'creator'].includes(chatMember.status)) {
       return true;
     }
     
-    // In any other case, the bot doesn't have permission.
+    // In any other case, assume no permission and leave
+    console.log(`Bot can't send messages in: ${chatId} (status: ${chatMember.status}), leaving...`);
+    await bot.leaveChat(chatId);
     return false;
-  } catch (error) {
-    console.error(`Error verificando permisos en el chat ${chatId}:`, error);
+  } catch (error: any) {
+    console.error(`Error verifying permissions in ${chatId}:`, error.message);
+    // If there is another error, assume no permission and leave
+    try {
+      await bot.leaveChat(chatId);
+      console.log(`${chatId} is unachievable, leaving...`);
+    } catch (leaveError: any) {
+      console.error(`ERROR trying to leave ${chatId}:`, leaveError.message);
+    }
     return false;
   }
 }
