@@ -39,7 +39,7 @@ async function getBitcoinPrices() {
       ? `Bitstamp API falló: ${error.response.status}`
       : `getBitcoinPrices() error: ${error.message}`;
     console.error(errorMsg);
-    throw new Error(errorMsg);
+    return lastPrices;
   }
 }
 
