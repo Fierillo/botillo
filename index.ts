@@ -39,16 +39,6 @@ const bot = new TelegramBot(TELEGRAM_BOT_TOKEN!, {
   }
 });
 
-// Telegram bot error handling
-bot.on('polling_error', (error) => {
-  if (error.message.includes('ECONNRESET')) {
-    console.warn('ECONNRESET detected, retrying in 5s...');
-    setTimeout(() => bot.startPolling(), 5000);
-  } else {
-    console.error('Error en polling:', error.message);
-  }
-});
-
 // Initial check to see if the bot is already running
 bot.getMe().then(() => {
   console.log('Bot conectado correctamente, iniciando polling...');
