@@ -78,7 +78,7 @@ async function prodilloInterval(bot: TelegramBot, telegramChats: { [key: number]
     }
     
     // Triggers win event if deadline is over (difficulty adjustment of Bitcoin)
-    if (((winnerDeadline === 0) && !prodilloState.isWon) || prodilloState.isWin) {
+    if (((winnerDeadline === 0 || winnerDeadline > 2010) && !prodilloState.isWon) || prodilloState.isWin) {
       
       // Read prodillos.json file and store it in a local variable
       prodillos = JSON.parse(await fs.promises.readFile(PRODILLOS_FILE, 'utf-8'));
