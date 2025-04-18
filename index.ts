@@ -39,29 +39,20 @@ const bot = new TelegramBot(TELEGRAM_BOT_TOKEN!, {
   }
 });
 
-// Initial check to see if the bot is already running
-bot.getMe().then(() => {
-  console.log('Bot conectado correctamente, iniciando polling...');
-}).catch((error) => {
-  if (error.response && error.response.statusCode === 409) {
-    console.error('Otra instancia ya está corriendo, cerrando esta...');
-    process.exit(1);
-  }
-});
-
 bot.on('polling_error', (error) => {
   const timestamp = new Date().toISOString();
   if (error.message.includes('409 Conflict')) {
-    console.error(`${timestamp}: Conflicto detectado (409), cerrando esta instancia...`);
+    console.error(`${timestamp}: 409 conflict detected, another instance of the bot is already running, exiting...`);
     process.exit(1); 
   } else if (error.message.includes('ECONNRESET') || error.message.includes('ENETUNREACH') || error.message.includes('ETIMEDOUT')) {
-    console.warn(`${timestamp}: ${error.message} detectado, reintentando en 10 segundos...`);
-    setTimeout(() => bot.startPolling(), 10000);
+    console.warn(`${timestamp}: ${error.message} detected, exiting...`);
+    process.exit(1); 
   } else if (error.message.includes('EAI_AGAIN')) {
-    console.warn(`${timestamp}: DNS falló (EAI_AGAIN), reintentando en 15 segundos...`);
-    setTimeout(() => bot.startPolling(), 15000);
+    console.warn(`${timestamp}: DNS falló (EAI_AGAIN), exiting...`);
+    process.exit(1);
   } else {
-    console.error(`${timestamp}: Error en polling:`, error.message);
+    console.error(`${timestamp}, polling error, exiting:`, error.message);
+    process.exit(1);
   }
 });
 
