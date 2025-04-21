@@ -141,7 +141,7 @@ async function hasSendPermission(chatId: string, bot: TelegramBot): Promise<bool
     // If the bot is 'restricted', check if it can send messages
     if (chatMember.status === 'restricted') {
       if (!chatMember.can_send_messages) {
-        console.log(`Bot restringido sin permisos en chat ${chatId}, abandonando...`);
+        console.log(`bot is restricted in: ${chatId}, leaving...`);
         await bot.leaveChat(chatId);
         return false;
       }

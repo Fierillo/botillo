@@ -148,6 +148,7 @@ async function prodilloInterval(bot: TelegramBot, telegramChats: { [key: number]
       
       // Prevents that win event is triggered again for a while
       prodilloState.isWon = true
+      console.log(`Round finished! Winner: ${prodilloState.winnerName} [${winnerId}]`);
     }
     await new Promise(resolve => setTimeout(resolve, PRODILLO_TIME_INTERVAL));
   }
@@ -213,7 +214,6 @@ async function getListilla(bot:TelegramBot, chatId:number, prodillos: Record<str
     try {
       const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf-8'));
       bitcoinPrices.bitcoinMax = data.bitcoinMax;
-      console.log(bitcoinPrices.bitcoinMax);
     } catch (error) {
       console.error('error trying to read bitcoin.json');
     }

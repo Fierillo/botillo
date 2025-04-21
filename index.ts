@@ -39,6 +39,7 @@ const bot = new TelegramBot(TELEGRAM_BOT_TOKEN!, {
   }
 });
 
+// error handling
 bot.on('polling_error', (error) => {
   const timestamp = new Date().toISOString();
   if (error.message.includes('409 Conflict')) {
@@ -46,13 +47,13 @@ bot.on('polling_error', (error) => {
     process.exit(1); 
   } else if (error.message.includes('ECONNRESET') || error.message.includes('ENETUNREACH') || error.message.includes('ETIMEDOUT')) {
     console.warn(`${timestamp}: ${error.message} detected, exiting...`);
-    process.exit(1); 
+    //process.exit(1); 
   } else if (error.message.includes('EAI_AGAIN')) {
     console.warn(`${timestamp}: DNS falló (EAI_AGAIN), exiting...`);
-    process.exit(1);
+    //process.exit(1);
   } else {
     console.error(`${timestamp}, polling error, exiting:`, error.message);
-    process.exit(1);
+    //process.exit(1);
   }
 });
 
