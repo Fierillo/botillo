@@ -9,7 +9,7 @@ const path = require('path');
 import { createInvoiceREST } from './src/modules/donacioncilla';
 import { getListilla, getProdillo, getTrofeillos, prodilloInterval, saveValues } from './src/modules/prodillo';
 import { bitcoinPrices, getBitcoinPrices, loadValues, trackBitcoinPrice, telegramChats, discordChannels } from './src/modules/bitcoinPrices';
-import { getTest } from "./src/modules/test";
+//import { getTest } from "./src/modules/test";
 
 config();
 
@@ -161,10 +161,10 @@ bot.command(['hilo', 'hilo@botillo21_bot'], async (ctx) => {
   }
 });
 
-bot.command('test', (ctx) => {
+/*bot.command('test', (ctx) => {
   ensureChatIsSaved(ctx);
   getTest(ctx);
-});
+});*/
 
 const welcome = (ctx: Context) => {
   const name = ctx.chat?.type === 'private' ? ctx.chat.first_name : ctx.chat?.title;
