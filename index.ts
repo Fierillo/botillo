@@ -1,9 +1,9 @@
-// Dependency imports
 import { execSync } from "child_process";
-import { TextChannel, Message } from "discord.js";
+import { TextChannel } from "discord.js";
 import { config } from "dotenv";
+import { Telegraf, Context } from 'telegraf'; 
+import { message } from 'telegraf/filters'; 
 const schedule = require('node-schedule');
-import TelegramBot from 'node-telegram-bot-api';
 const fs = require('fs');
 const path = require('path');
 import { createInvoiceREST } from './src/modules/donacioncilla';
@@ -11,10 +11,8 @@ import { getListilla, getProdillo, getTrofeillos, prodilloInterval, saveValues }
 import { bitcoinPrices, getBitcoinPrices, loadValues, trackBitcoinPrice, telegramChats, discordChannels } from './src/modules/bitcoinPrices';
 import { getTest } from "./src/modules/test";
 
-// Load environment variables from .env file
 config();
 
-// Discord Client
 const { Client, GatewayIntentBits } = require('discord.js');
 const client = new Client({ 
   intents: [
@@ -24,40 +22,27 @@ const client = new Client({
   ] 
 });
 
-// CONSTANTS
 const PRODILLOS_FILE = path.join(__dirname, '/src/db/prodillos.json');
 const BITCOIN_FILE = path.join(__dirname, '/src/db/bitcoin.json');
 
-// Discord bot token
 client.login(process.env.DISCORD_TOKEN_ORIGINAL!);
-// Telegram bot token
+
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!;
-const bot = new TelegramBot(TELEGRAM_BOT_TOKEN!, { 
-  polling: {
-    interval: 2100, // polling interval in ms
-    autoStart: true,
-  }
-});
+const bot = new Telegraf(TELEGRAM_BOT_TOKEN);
 
-// error handling
-bot.on('polling_error', (error) => {
+function ensureChatIsSaved(ctx: Context) {
+  if (ctx.chat && !telegramChats.hasOwnProperty(ctx.chat.id)) {
+    const chatName = ctx.chat.type === 'private' ? ctx.chat.first_name : ctx.chat.title;
+    telegramChats[ctx.chat.id] = chatName || 'Unknown';
+    console.log(`Chat guardado: ${chatName} [${ctx.chat.id}]`);
+  }
+}
+
+bot.catch((err, ctx) => {
   const timestamp = new Date().toISOString();
-  if (error.message.includes('409 Conflict')) {
-    console.error(`${timestamp}: 409 conflict detected, another instance of the bot is already running, exiting...`);
-    process.exit(1); 
-  } else if (error.message.includes('ECONNRESET') || error.message.includes('ENETUNREACH') || error.message.includes('ETIMEDOUT')) {
-    console.warn(`${timestamp}: ${error.message} detected, exiting...`);
-    //process.exit(1); 
-  } else if (error.message.includes('EAI_AGAIN')) {
-    console.warn(`${timestamp}: DNS falló (EAI_AGAIN), exiting...`);
-    //process.exit(1);
-  } else {
-    console.error(`${timestamp}, polling error, exiting:`, error.message);
-    //process.exit(1);
-  }
+  console.error(`${timestamp} - Ocurrió un error en Telegraf para ${ctx.updateType}`, err);
 });
 
-// Another error handling
 process.on('uncaughtException', (error) => {
   console.error('Uncaught exception:', error.message);
 });
@@ -65,11 +50,9 @@ process.on('unhandledRejection', (reason) => {
   console.error('Unhandled promise rejection:', reason);
 });
 
-// Define global variables
 let prodillos: Record<string, { user: string; predict: number }> = {};
 export { prodillos }
 
-// Restores prodillos from JSON file
 function loadProdillos() {
   if (!fs.existsSync(PRODILLOS_FILE)) {
       fs.writeFileSync(PRODILLOS_FILE, JSON.stringify(prodillos, null, 2))
@@ -83,7 +66,6 @@ function loadProdillos() {
 }
 
 // STARTING EVENT
-// Detects automatically the Discord server where the bot is, detects the first text-based channel, store it and send a message to it
 client.on('ready', async () => {
   console.log(execSync('git log -1 --pretty=%B').toString().trim())
   console.log(`${client.user?.tag} ready on Discord!`);
@@ -96,15 +78,15 @@ client.on('ready', async () => {
     });
   });
   
-  // Starts main functions
   await loadProdillos();
   await loadValues();
-  trackBitcoinPrice(bot);
+  trackBitcoinPrice(bot); 
   setTimeout(() => prodilloInterval(bot, telegramChats, prodillos, bitcoinPrices), 420);
-  setTimeout(seViene, Math.random() * ((69 - 1)*3600*1000) + 1 * 3600*1000); // Interval between 1 and 69 hours
+  setTimeout(seViene, Math.random() * ((69 - 1)*3600*1000) + 1 * 3600*1000);
+  bot.launch();
+  console.log('Botillo is alive in Telegram!');
 });
 
-// Sends SE VIENE message at random intervals to all channels and chats where bot is
 function seViene() {
   const luckyNumber = Math.random();
   const selectedMsg = luckyNumber <= 0.1 
@@ -112,39 +94,33 @@ function seViene() {
   : luckyNumber <= 0.8 ? 'SE VIENE' 
   : '🔥 SE RECONTRA VIENE';
   
-  // Sends message to all Telegram and Discord chats
   Object.keys(telegramChats).forEach(chatId => 
-    bot.sendMessage(Number(chatId),selectedMsg!));
+    bot.telegram.sendMessage(Number(chatId), selectedMsg!)); // <--- CAMBIO
   Object.values(discordChannels).forEach(channel => 
     channel.send(selectedMsg!));
-  setTimeout(seViene, Math.random() * ((69 - 1)*3600*1000) + 1 * 3600*1000); // Interval between 1 and 69 hours
+  setTimeout(seViene, Math.random() * ((69 - 1)*3600*1000) + 1 * 3600*1000);
 };
 
-// Define cron job to reset daily highs and lows at midnight (UTC = 00:00)
-schedule.scheduleJob('0 21 * * *', async () => { // 21:00 at local time (UTC-3) = 00:00 UTC
+schedule.scheduleJob('0 21 * * *', async () => {
   const { max, min } = await getBitcoinPrices();
   
   bitcoinPrices.lastReportedMax = max;
   bitcoinPrices.lastReportedMin = min;
   
-  // Load bitcoin.json file and update lastReportedMax/Min
   const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf8'));
   data.lastReportedMax = bitcoinPrices.lastReportedMax;
   data.lastReportedMin = bitcoinPrices.lastReportedMin;
-  await saveValues('lastReportedMax', bitcoinPrices.lastReportedMax);
-  await saveValues('lastReportedMin', bitcoinPrices.lastReportedMin);
+  await saveValues(BITCOIN_FILE, 'lastReportedMax', bitcoinPrices.lastReportedMax);
+  await saveValues(BITCOIN_FILE, 'lastReportedMin', bitcoinPrices.lastReportedMin);
   
-  // Then send reset message to all Discord channels...
   for (const channelId in discordChannels) {
     discordChannels[channelId].send(`¡GN humanos!\n🦁 El máximo de ₿ del dia fue: $${max}\n🐻 El mínimo fue: $${min}\n🔺 La variación del dia fue: $${max-min} (${(100*(max/min)-100).toFixed(1)}%)`);
   }
-  // And to all Telegram chats...
   for (const chatId in telegramChats) {
-    bot.sendMessage(chatId, `¡GN humanos!\n🦁 El máximo de ₿ del dia fue: $${max}\n🐻 El mínimo fue: $${min}\n🔺 La variación del dia fue: $${max-min} (${(100*(max/min)-100).toFixed(1)}%)`);
+    bot.telegram.sendMessage(chatId, `¡GN humanos!\n🦁 El máximo de ₿ del dia fue: $${max}\n🐻 El mínimo fue: $${min}\n🔺 La variación del dia fue: $${max-min} (${(100*(max/min)-100).toFixed(1)}%)`); // <--- CAMBIO
   }
 });
 
-// Send Bitcoin price when user writes /precio, and max/min BTC price when user writes /hilo
 client.on('messageCreate', async (message: { content: string; channel: TextChannel; }) => {
   if (message.content === '/precio') {
     const { price } = await getBitcoinPrices();
@@ -154,137 +130,112 @@ client.on('messageCreate', async (message: { content: string; channel: TextChann
     (message.channel as TextChannel).send(`🦁 máximo diario de ₿: $${max} (${(100*(max/bitcoinPrices.bitcoinATH)).toFixed(1)}% del ATH)\n🐻 mínimo diario de ₿: $${min}\n🔺 Volatilidad diaria: $${max-min} (${(100*(max/min)-100).toFixed(1)}%)\n🚀 ATH de ₿: $${bitcoinPrices.bitcoinATH}`);
 }});
 
-// Bot says GM every day at 8am (UTC-3)
 schedule.scheduleJob('0 8 * * *', () => { 
   for (const channelId in discordChannels) {
     discordChannels[channelId].send(`GM humanos 🧉`);
   }
   for (const chatId in telegramChats) {
-    bot.sendMessage(chatId, `GM humanos 🧉`);
+    bot.telegram.sendMessage(chatId, `GM humanos 🧉`); // <--- CAMBIO
   }
 });
 
-// ------------TELEGRAM COMMANDS-------------
-
-// Stores the chats where the bot is
-bot.on('message', (msg) => {
-  if (!telegramChats.hasOwnProperty(msg.chat.id)) {
-    telegramChats[msg.chat.id] = msg.chat.title || msg.chat.first_name || 'Unknown';
-    console.log(`Added telegram chat: ${msg.chat.title || msg.chat.first_name} [${msg.chat.id}]`);
-    
-    // Shows all the Telegram chats where the bot is
-    console.log("Current Chats:");
-    for (const [id, name] of Object.entries(telegramChats)) {
-      console.log(`- ${name} [${id}]`);
-    }
-  }
-});
-
-// Send Bitcoin price when user writes /precio
-bot.onText(/\/precio(@botillo21_bot)?/, async (msg) => {
-  const chatId = msg.chat.id;
+bot.command(['precio', 'precio@botillo21_bot'], async (ctx) => {
+  ensureChatIsSaved(ctx);
   try {
     const { price } = await getBitcoinPrices();
-    await bot.sendMessage(chatId, `Precio actual de ₿: $${price} (${(100 * (price / bitcoinPrices.bitcoinATH)).toFixed(1)}% del ATH)`);
+    await ctx.reply(`Precio actual de ₿: $${price} (${(100 * (price / bitcoinPrices.bitcoinATH)).toFixed(1)}% del ATH)`);
   } catch (error) {
-    console.error(`Error en /precio para chat ${chatId}`);
-    await bot.sendMessage(chatId, '🚨 Error al traer el precio de ₿, probá de nuevo en un rato.');
+    console.error(`Error en /precio para chat ${ctx.chat.id}`);
+    await ctx.reply('🚨 Error al traer el precio de ₿, probá de nuevo en un rato.');
   }
 });
 
-// Send High and Low prices when user writes /hilo
-bot.onText(/\/hilo(@botillo21_bot)?/, async (msg) => {
-  const chatId = msg.chat.id;
+bot.command(['hilo', 'hilo@botillo21_bot'], async (ctx) => {
+  ensureChatIsSaved(ctx);
   try {
     const { max, min } = await getBitcoinPrices();
-    await bot.sendMessage(chatId, `🦁 máximo diario de ₿: $${max} (${(100 * (max / bitcoinPrices.bitcoinATH)).toFixed(1)}% del ATH)\n🐻 mínimo diario de ₿: $${min}\n🔺 Volatilidad diaria: $${max - min} (${(100 * (max / min) - 100).toFixed(1)}%)\n🚀 ATH de ₿: $${bitcoinPrices.bitcoinATH}`);
+    await ctx.reply(`🦁 máximo diario de ₿: $${max} (${(100 * (max / bitcoinPrices.bitcoinATH)).toFixed(1)}% del ATH)\n🐻 mínimo diario de ₿: $${min}\n🔺 Volatilidad diaria: $${max - min} (${(100 * (max / min) - 100).toFixed(1)}%)\n🚀 ATH de ₿: $${bitcoinPrices.bitcoinATH}`);
   } catch (error) {
-    console.error(`Error en /hilo para chat ${chatId}`);
-    await bot.sendMessage(chatId, '🚨 Error al traer el hilo de ₿, probá de nuevo en un rato.');
+    console.error(`Error en /hilo para chat ${ctx.chat.id}`);
+    await ctx.reply('🚨 Error al traer el hilo de ₿, probá de nuevo en un rato.');
   }
 });
 
-// Welcome message constant
-const welcome = (id: number, name: string | undefined) => bot.sendMessage(id, `¡GM ${name}!\n\nSoy Botillo, mira las cosas que puedo hacer por ti:\n\n- Reportar automáticamente el máximo o mínimo mas reciente de Bitcoin\n/precio - Muestro el precio actual de Bitcoin\n/hilo - Muestro el máximo y mínimo en lo que va del dia\n/start - Muestro este mensaje\n\nProdillo: adivina el proximo máximo de BTC\n- Cada ronda dura 2016 bloques (un ajuste de dificultad)\n- Los jugadores pueden enviar prodillos hasta 420 bloques antes del fin de la ronda\n- El jugador que mas se aproxime al máximo de BTC de esa ronda sera el ganador\n/prodillo - Registra tu predicción del máximo de BTC de esta ronda\n/listilla - Muestra la lista de jugadores y sus prodillos\n/trofeillos - Muestra el salon de ganadores de prodillos\n\nPuedes mirar mi código en GitHub: https://github.com/Fierillo/botillo\n\n¡Gracias por usarme!`, {disable_web_page_preview: true});
-
-// Sends welcome message when user writes /start
-bot.onText(/^\/start$/, (msg) => welcome(msg.chat.id, msg.chat.title || msg.chat.first_name));
-
-// Sends welcome message when bot joins new group
-bot.on('new_chat_members', async (msg) => {
-  const botId = (await bot.getMe()).id;
-  msg.new_chat_members?.forEach(member => member.id === botId && welcome(msg.chat.id, msg.chat.title || msg.chat.first_name));
+bot.command('test', (ctx) => {
+  ensureChatIsSaved(ctx);
+  getTest(ctx);
 });
 
-// Bot replies VERDADERO or FALSO when user asks it directly or tag it, finishing with a "?"
-bot.on('message', async (msg) => {
-  if (msg.text && (msg.text.includes(`@${(await bot.getMe()).username}`) || msg.reply_to_message?.from?.id === (await bot.getMe()).id) && msg.text.endsWith('?')) {
-    bot.sendMessage(msg.chat.id, Math.random() < 0.5 ? '✅ VERDADERO' : '❌ FALSO');
-  }
+const welcome = (ctx: Context) => {
+  const name = ctx.chat?.type === 'private' ? ctx.chat.first_name : ctx.chat?.title;
+  ctx.reply(`¡GM ${name}!\n\nSoy Botillo, mira las cosas que puedo hacer por ti:\n\n- Reportar automáticamente el máximo o mínimo mas reciente de Bitcoin\n/precio - Muestro el precio actual de Bitcoin\n/hilo - Muestro el máximo y mínimo en lo que va del dia\n/start - Muestro este mensaje\n\nProdillo: adivina el proximo máximo de BTC\n- Cada ronda dura 2016 bloques (un ajuste de dificultad)\n- Los jugadores pueden enviar prodillos hasta 420 bloques antes del fin de la ronda\n- El jugador que mas se aproxime al máximo de BTC de esa ronda sera el ganador\n/prodillo - Registra tu predicción del máximo de BTC de esta ronda\n/listilla - Muestra la lista de jugadores y sus prodillos\n/trofeillos - Muestra el salon de ganadores de prodillos\n\nPuedes mirar mi código en GitHub: https://github.com/Fierillo/botillo\n\n¡Gracias por usarme!`);
+}
+
+bot.start((ctx) => welcome(ctx));
+
+bot.command(['prodillo', 'prodillo@botillo21_bot'], async (ctx) => {
+  ensureChatIsSaved(ctx);
+  getProdillo(ctx, prodillos, bitcoinPrices);
 });
 
-// Bot replies ME CHUPA LA PIJA LA OPINION DE LAS KUKAS when users write "peron*", "kuka*", "kirchner*", "zurdo*"
-bot.onText(/(?<=\s|^)(peron|kuka|kirchner|zurdo)\w*/i, (msg) => {
-  if (Math.random() <= 0.21) {
-    bot.sendMessage(msg.chat.id, msg.chat.id === -1001778459295 ? 'NO ME INTERESA LA OPINION DE LAS KUKAS' : 'ME CHUPA LA PIJA LA OPINION DE LAS KUKAS');
-  }
+bot.command(['listilla', 'listilla@botillo21_bot'], (ctx) => {
+  ensureChatIsSaved(ctx);  
+  getListilla(ctx, prodillos, bitcoinPrices);
 });
 
-// Bot replies to shitcoiners
-bot.onText(/(?<=\s|^)(eth|solana|sol |bcash|bch |polkadot|dot |cardano|ada )\w*/i, (msg) => {
-  if (Math.random() <= 0.21) {
-    bot.sendMessage(msg.chat.id, '🚨 ALERTA DU SHITCOINER 🚨');
-  }
+bot.command(['trofeillos', 'trofeillos@botillo21_bot'], (ctx) => {
+  ensureChatIsSaved(ctx);
+  getTrofeillos(ctx);
 });
 
-/*bot.onText(/\/test/, (msg) => {
-  try {
-    getTest(bot, msg)
-  } catch (error) {    
-    console.error('error in getTest()');
-  }
-});*/
-
-// Stores user predictions of BTC price in a JSON file and replies a reminder with the deadline
-bot.onText(/\/prodillo(\s|\@botillo21_bot\s)(.+)/, async (msg, match) => {
-  const userId = msg.from?.id;
-  const user = msg.from?.username;
-  const predictStr = (match as RegExpMatchArray)[2];
-  const predict = Math.round(Number(predictStr));
-  
-  getProdillo(bot, msg.chat.id, userId!, user!, predict, prodillos, bitcoinPrices)
-});
-
-// When user writes /lista, sends a list of all registered prodillos
-bot.onText(/\/listilla/, async (msg) => {
-  getListilla(bot, msg.chat.id, prodillos, bitcoinPrices)
-});
-
-// When user writes /trofeillos, sends a list of all winners of the game and the number of trophys of each one
-bot.onText(/\/trofeillos/, (msg) => {
-  getTrofeillos(bot, msg.chat.id)
-});
-
-// Defines a function that creates an invoice for donations
-bot.onText(/\/donacioncilla(\s|\@botillo21_bot\s)(.+)/, async (msg, match) => {
-  const chatId = msg.chat.id;
-  const userId = msg.from?.id;
-  const user = msg.from?.username;
-  const amountStr = (match as RegExpMatchArray)[2];
+bot.command(['donacioncilla', 'donacioncilla@botillo21_bot'], async (ctx) => {
+  ensureChatIsSaved(ctx);
+  const userId = ctx.from.id;
+  const user = ctx.from.username;
+  const args = ctx.message.text.split(' ');
+  args.shift();
+  const amountStr = args.join(' ');
   const amount = Math.round(Number(amountStr));
 
   if (userId && user && !isNaN(amount) && amount >= 0 && isFinite(amount)) {
     try {
-      // Create LND invoice
       const invoice = await createInvoiceREST(amount, `Donación de ${amount} satoshis`);
-      
       console.log(`🟨 ¡User ${user} [${userId}] wants to donate ${amount} sats!`);
-      await bot.sendMessage(chatId, `🍾 ¡Gracias por querer donar ${amount} satoshi${amount > 1 ? 's' : ''} loko/a! 🙏\n\n¡Toma, paga aca!: ${invoice.request}`);
+      await ctx.reply(`🍾 ¡Gracias por querer donar ${amount} satoshi${amount > 1 ? 's' : ''} loko/a! 🙏\n\n¡Toma, paga aca!: ${invoice.request}`);
     } catch (error) {
       console.error(`❌ error when ${user} [${userId}] tried to donate ${amount} sats`, error);
-      await bot.sendMessage(chatId, '❌ Lo siento loko, hubo un error al generar el invoice, proba devuelta');
+      await ctx.reply('❌ Lo siento loko, hubo un error al generar el invoice, proba devuelta');
     }
   } else {
-    await bot.sendMessage(chatId, '❌ ¡Ingresaste cualquier cosa loko!\n\n/donacioncilla <monto en satoshis>');
+    await ctx.reply('❌ ¡Ingresaste cualquier cosa loko!\n\n/donacioncilla <monto en satoshis>');
   }
 });
+
+bot.hears(/(?<=\s|^)(peron|kuka|kirchner|zurdo)\w*/i, (ctx) => {
+  ensureChatIsSaved(ctx);
+  if (Math.random() <= 0.21) {
+    ctx.reply(ctx.chat.id === -1001778459295 ? 'NO ME INTERESA LA OPINION DE LAS KUKAS' : 'ME CHUPA LA PIJA LA OPINION DE LAS KUKAS');
+  }
+});
+
+bot.hears(/(?<=\s|^)(eth|solana|sol |bcash|bch |polkadot|dot |cardano|ada )\w*/i, (ctx) => {
+  ensureChatIsSaved(ctx);
+  if (Math.random() <= 0.21) {
+    ctx.reply('🚨 ALERTA DU SHITCOINER 🚨');
+  }
+});
+
+bot.on(message('text'), async (ctx) => {
+  ensureChatIsSaved(ctx);
+
+  const botUsername = ctx.botInfo.username;
+  const repliedToBot = ctx.message.reply_to_message?.from?.id === ctx.botInfo.id;
+  const mentionedBot = ctx.message.text.includes(`@${botUsername}`);
+
+  if ((repliedToBot || mentionedBot) && ctx.message.text.endsWith('?')) {
+    ctx.reply(Math.random() < 0.5 ? '✅ VERDADERO' : '❌ FALSO');
+  };
+});
+
+process.once('SIGINT', () => bot.stop('SIGINT'));
+process.once('SIGTERM', () => bot.stop('SIGTERM'));

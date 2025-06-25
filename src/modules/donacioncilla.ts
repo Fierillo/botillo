@@ -1,4 +1,3 @@
-// import dependencies
 import fetch from 'node-fetch';
 const fs = require('fs');
 const https = require('https');
@@ -18,7 +17,6 @@ function setupLndConnection() {
     };
   }
 
-// defines invoice function that uses LND REST API
 export async function createInvoiceREST (amount: number, description: string) {
   const { host, agent, macaroon } = setupLndConnection();  
 
@@ -49,7 +47,7 @@ export async function createInvoiceREST (amount: number, description: string) {
     return {
       request: data.payment_request,
       id: data.r_hash,
-      secret: data.payment_request.split('secret=')[1] // Esto es un ejemplo y podría no ser la forma correcta de obtener el secreto, revisa la estructura real de la respuesta
+      secret: data.payment_request.split('secret=')[1]
     };
   } catch (error) {
     console.error('Error during invoice creation using REST API:', error);

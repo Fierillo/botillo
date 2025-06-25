@@ -1,12 +1,11 @@
 import axios from "axios";
 import { saveValues } from "./prodillo";
-import TelegramBot from "node-telegram-bot-api";
+import { Telegraf } from "telegraf";
 import { TextChannel } from "discord.js";
 import path from "path";
 const fs = require('fs');
 
-// Set time interval for trackBitcoinPrice()
-const TIME_INTERVAL = 1000*420;
+const TIME_INTERVAL = 1000 * 420;
 
 const BITCOIN_FILE = path.join(__dirname, '../db/bitcoin.json');
 
@@ -21,12 +20,11 @@ let bitcoinPrices = {
 let telegramChats: { [key: number]: string } = {};
 let discordChannels: { [key: string]: TextChannel } = {};
 
-// Define function that fetches the Bitcoin price using Binance API
 async function getBitcoinPrices() {
   try {
     const { data } = await axios.get<{ last: string, low: string, high: string }>(
       'https://www.bitstamp.net/api/v2/ticker/btcusd',
-      { timeout: 10000 } // 10 segundos máximo
+      { timeout: 10000 } 
     );
     lastPrices = {
       price: parseInt(data.last),
@@ -43,7 +41,6 @@ async function getBitcoinPrices() {
   }
 }
 
-// Restores Bitcoin prices from bitcoin.json file
 async function loadValues() {
     if (!fs.existsSync(BITCOIN_FILE)) {
       fs.writeFileSync(BITCOIN_FILE, JSON.stringify(bitcoinPrices, null, 2));
@@ -69,8 +66,7 @@ async function loadValues() {
     }
   }
 
-// Define function that tracks the Bitcoin price at regular intervals and report the max and min only if values surpass old reported values
-async function trackBitcoinPrice(bot: TelegramBot) {
+async function trackBitcoinPrice(bot: Telegraf) {
   let retryCount = 0;
   const maxRetries = 5;
 
@@ -79,22 +75,19 @@ async function trackBitcoinPrice(bot: TelegramBot) {
       const { min, max } = await getBitcoinPrices();
       retryCount = 0;
 
-      // If price hits a new ATH
       if (max > bitcoinPrices.bitcoinATH) {
         bitcoinPrices.bitcoinATH = max;
-        await saveValues('bitcoinATH', bitcoinPrices.bitcoinATH);
+        await saveValues(BITCOIN_FILE, 'bitcoinATH', bitcoinPrices.bitcoinATH);
         await notifyAll(bot, `🚀 NUEVO ATH DE ₿: $${bitcoinPrices.bitcoinATH}`);
       } 
-      // If price hits a new daily max
       else if (max > bitcoinPrices.lastReportedMax && max < bitcoinPrices.bitcoinATH) {
         bitcoinPrices.lastReportedMax = max;
-        await saveValues('lastReportedMax', bitcoinPrices.lastReportedMax);
+        await saveValues(BITCOIN_FILE, 'lastReportedMax', bitcoinPrices.lastReportedMax);
         await notifyAll(bot, `🦁 nuevo máximo diario de ₿: $${bitcoinPrices.lastReportedMax}`);
       } 
-      // If price hits a new daily min
       else if (min < bitcoinPrices.lastReportedMin) {
         bitcoinPrices.lastReportedMin = min;
-        await saveValues('lastReportedMin', bitcoinPrices.lastReportedMin);
+        await saveValues(BITCOIN_FILE, 'lastReportedMin', bitcoinPrices.lastReportedMin);
         await notifyAll(bot, `🐻 nuevo mínimo diario de ₿: $${bitcoinPrices.lastReportedMin}`);
       }
 
@@ -102,7 +95,6 @@ async function trackBitcoinPrice(bot: TelegramBot) {
     } catch (error: any) {
       console.error('trackBitcoinPrice() error:', error.message);
       retryCount++;
-      // Retry logic with exponential backoff until 5 retries, then pause for 5 minutes
       if (retryCount <= maxRetries) {
         const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
         console.warn(`Retrying in ${delay/1000}s (try ${retryCount}/${maxRetries})...`);
@@ -116,11 +108,10 @@ async function trackBitcoinPrice(bot: TelegramBot) {
   }
 }
 
-// Helper para enviar mensajes a todos los chats
-async function notifyAll(bot: TelegramBot, message: string) {
+async function notifyAll(bot: Telegraf, message: string) {
   for (const chatId of Object.keys(telegramChats)) {
     if (await hasSendPermission(chatId, bot)) {
-      await bot.sendMessage(Number(chatId), message).catch(err =>
+      await bot.telegram.sendMessage(Number(chatId), message).catch(err =>
         console.error(`Fallo al enviar a Telegram ${chatId}:`, err.message)
       );
     }
@@ -132,36 +123,31 @@ async function notifyAll(bot: TelegramBot, message: string) {
   }
 }
 
-// Function to check if bot has permission to send messages and leave if it can't
-async function hasSendPermission(chatId: string, bot: TelegramBot): Promise<boolean> {
+async function hasSendPermission(chatId: string, bot: Telegraf): Promise<boolean> {
   try {
-    const botInfo = await bot.getMe();
-    const chatMember = await bot.getChatMember(chatId, botInfo.id);
+    const botInfo = await bot.telegram.getMe();
+    const chatMember = await bot.telegram.getChatMember(chatId, botInfo.id);
     
-    // If the bot is 'restricted', check if it can send messages
     if (chatMember.status === 'restricted') {
       if (!chatMember.can_send_messages) {
         console.log(`bot is restricted in: ${chatId}, leaving...`);
-        await bot.leaveChat(chatId);
+        await bot.telegram.leaveChat(chatId); 
         return false;
       }
       return chatMember.can_send_messages;
     }
     
-    // If the bot is 'member', 'administrator' or 'creator', it has permission
     if (['member', 'administrator', 'creator'].includes(chatMember.status)) {
       return true;
     }
     
-    // In any other case, assume no permission and leave
     console.log(`Bot can't send messages in: ${chatId} (status: ${chatMember.status}), leaving...`);
-    await bot.leaveChat(chatId);
+    await bot.telegram.leaveChat(chatId); 
     return false;
   } catch (error: any) {
     console.error(`Error verifying permissions in ${chatId}:`, error.message);
-    // If there is another error, assume no permission and leave
     try {
-      await bot.leaveChat(chatId);
+      await bot.telegram.leaveChat(chatId); 
       console.log(`${chatId} is unachievable, leaving...`);
     } catch (leaveError: any) {
       console.error(`ERROR trying to leave ${chatId}:`, leaveError.message);
