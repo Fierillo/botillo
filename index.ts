@@ -180,7 +180,7 @@ bot.command(['prodillo', 'prodillo@botillo21_bot'], async (ctx) => {
 
 bot.command(['listilla', 'listilla@botillo21_bot'], (ctx) => {
   ensureChatIsSaved(ctx);  
-  getListilla(ctx, prodillos, bitcoinPrices);
+  getListilla(ctx, prodillos);
 });
 
 bot.command(['trofeillos', 'trofeillos@botillo21_bot'], (ctx) => {

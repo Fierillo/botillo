@@ -171,39 +171,58 @@ async function getProdillo(
 }
 
 async function getListilla(
-  ctx: Context, 
-  prodillos: Record<string, { user: string; predict: number; }>, 
-  bitcoinPrices: BitcoinPriceTracker
+  ctx: Context,
+  prodillos: Record<string, { user: string; predict: number }>
 ) {
   try {
-    const currentProdillos = JSON.parse(await fs.readFile(PRODILLOS_FILE, 'utf-8'));
+    const prodillosFromFile = JSON.parse(await fs.readFile(PRODILLOS_FILE, 'utf-8'));
     const bitcoinData = JSON.parse(await fs.readFile(BITCOIN_FILE, 'utf-8'));
-    bitcoinPrices.bitcoinMax = bitcoinData.bitcoinMax;
-    
+    const currentRoundMaxPrice = bitcoinData.bitcoinMax;
+
+    if (Object.keys(prodillosFromFile).length === 0) {
+      return ctx.reply('Todavía no hay prodillos en esta ronda. ¡Sé el primero con /prodillo <número>!');
+    }
+
+    const rankedPredictions = (Object.values(prodillosFromFile) as Array<{ user: string; predict: number }>).map(({ user, predict }) => {
+      return { user, predict, diff: Math.abs(predict - currentRoundMaxPrice) };
+    }).sort((a, b) => a.diff - b.diff);
+
+    const leaderDifference = rankedPredictions[0].diff;
+
+    let formattedList = `Usuario                | Predicción   | Diferencia\n`;
+    formattedList += `-----------------------------------------------------\n`;
+
+    rankedPredictions.forEach(({ user, predict, diff }) => {
+      const isRekt = predict < currentRoundMaxPrice && diff > leaderDifference;
+
+      const userColumn = user.padEnd(20, ' ');
+      const predictColumn = `$${predict.toString().padStart(10, ' ')}`;
+      const line = `${userColumn} | ${predictColumn} | ${diff}`;
+
+      if (isRekt) {
+        formattedList += `<s>${line}</s> (REKT!)\n`;
+      } else {
+        const isLeader = diff === leaderDifference;
+        formattedList += `${line}${isLeader ? ' 🏆' : ''}\n`;
+      }
+    });
+
     const { winnerDeadline, prodilleableDeadline } = await deadline();
-    
-    const sortedProdillos = Object.values(currentProdillos).map((p: any) => ({
-      ...p,
-      diff: Math.abs(p.predict - bitcoinPrices.bitcoinMax)
-    })).sort((a, b) => a.diff - b.diff);
+    const roundMaxPriceInfo = `Precio máximo de ₿ en esta ronda: $${currentRoundMaxPrice}`;
+    const deadlineInfo = `🟧⛏️ Tiempo para predecir: ${prodilloState.isPredictionWindowOpen ? prodilleableDeadline : 0} bloques\n` +
+                         `🏁 Tiempo para el ganador: ${winnerDeadline} bloques`;
 
-    let listHeader = `<b>LISTA DE PRODILLOS:</b>\n\nMáximo actual de la ronda: $${bitcoinPrices.bitcoinMax}\n`;
-    listHeader += `${'-'.repeat(45)}\n`;
-    listHeader += `${'Usuario'.padEnd(20)} | ${'Predicción'.padEnd(10)} | Diferencia\n`;
-    listHeader += `${'-'.repeat(45)}\n`;
+    const fullMessage = `<pre><b>LISTA DE PRODILLOS:</b>\n\n` +
+                        `${roundMaxPriceInfo}\n` +
+                        `-----------------------------------------------------\n` +
+                        `${formattedList}\n` +
+                        `${deadlineInfo}</pre>`;
 
-    const listBody = sortedProdillos.map(({ user, predict, diff }) => {
-      const isRekt = predict < bitcoinPrices.bitcoinMax;
-      const line = `${user.padEnd(20)} | $${predict.toString().padStart(9)} | ${diff}`;
-      return isRekt ? `<s>${line}</s> (REKT!)` : line;
-    }).join('\n');
+    await ctx.reply(fullMessage, { parse_mode: 'HTML' });
 
-    const listFooter = `\n${'-'.repeat(45)}\n🟧⛏️ Tiempo para predecir: ${prodilloState.isPredictionWindowOpen ? prodilleableDeadline : 0} bloques\n🏁 Tiempo para el ganador: ${winnerDeadline} bloques`;
-
-    await ctx.reply(`<pre>${listHeader}${listBody}${listFooter}</pre>`, { parse_mode: 'HTML' });
   } catch (error) {
-    console.error('Could not get the list of prodillos:', error);
-    await ctx.reply('No se pudo obtener la lista de prodillos.');
+    console.error('Error al generar la listilla:', error);
+    await ctx.reply('No se pudo obtener la lista de prodillos en este momento.');
   }
 }
 
