@@ -89,7 +89,7 @@ async function prodilloRoundManager(
       const [winnerId, winnerData] = sortedProdillos[0] as [string, { user: string, predict: number }];
       prodilloState.winnerName = winnerData.user;
       
-      const announcement = `<pre>🏁 ¡LA RONDA HA TERMINADO!\nMáximo de ₿ de esta ronda: $${bitcoinPrices.bitcoinMax}\n------------------------------------------\n${formattedList}\n\nEl ganador es ${prodilloState.winnerName} 🏆</pre>`;
+      const announcement = `<pre>🏁 ¡LA RONDA HA TERMINADO!\nMáximo de ₿ de esta ronda: $${bitcoinPrices.bitcoinMax}\n------------------------------------------\n${formattedList}\n\nCampeón/a: ${prodilloState.winnerName} 🏆</pre>`;
       
       Object.keys(telegramChats).forEach(chatId => {
         bot.telegram.sendMessage(chatId, announcement, { parse_mode: 'HTML' });
@@ -134,7 +134,7 @@ async function getProdillo(
   const { winnerDeadline, prodilleableDeadline } = await deadline();
   
   if(!prodilloState.isPredictionWindowOpen && !prodilloState.isTest) {
-    return ctx.reply(`¡Tarde, loko! La ventana de predicciones está cerrada.\nEspera ${winnerDeadline} bloques para que comience la nueva ronda.`);
+    return ctx.reply(`¡Tarde, loko/a! La ventana de predicciones está cerrada.\nEspera ${winnerDeadline} bloques para que comience la nueva ronda.`);
   }
 
   if (!ctx.from) {
@@ -153,11 +153,11 @@ async function getProdillo(
     bitcoinPrices.bitcoinMax = bitcoinData.bitcoinMax;
 
     if (Object.values(currentProdillos).some((p: any) => p.predict === predict)) {
-      return ctx.reply(`Ese prodillo ya existe. ¡Elegí otro valor, loko!`);
+      return ctx.reply(`Ese prodillo ya existe. ¡Elegí otro valor, loko/a!`);
     }
     
     if (predict < bitcoinPrices.bitcoinMax) {
-      return ctx.reply(`Tenés que ingresar un valor mayor a $${bitcoinPrices.bitcoinMax} para tener chance.\n¡Mentalidad de tiburón, loko!`);
+      return ctx.reply(`Tenes que ingresar un valor mayor a $${bitcoinPrices.bitcoinMax} para tener chance.\n¡Mentalidad de tiburón, loko/a!`);
     }
     
     currentProdillos[userId] = { user, predict };
@@ -166,7 +166,7 @@ async function getProdillo(
     ctx.reply(`Prodillo de ${user} registrado: $${predict}\n\n🟧⛏️ Tiempo para predecir: ${prodilleableDeadline} bloques\n🏁 Tiempo para el ganador: ${winnerDeadline} bloques`);
     console.log(`Registered prodillo of ${user} [${userId}]: ${predict}`);
   } else {
-    ctx.reply('¡Ingresaste cualquier cosa, loko!\n\nUso: /prodillo <numero>');
+    ctx.reply('¡Ingresaste cualquier cosa, loko/a!\n\nUso: /prodillo <numero>');
   }
 }
 
@@ -180,7 +180,7 @@ async function getListilla(
     const currentRoundMaxPrice = bitcoinData.bitcoinMax;
 
     if (Object.keys(prodillosFromFile).length === 0) {
-      return ctx.reply('Todavía no hay prodillos en esta ronda. ¡Sé el primero con /prodillo <número>!');
+      return ctx.reply('Todavía no hay prodillos en esta ronda. ¡Aprovecha con /prodillo <número>!');
     }
 
     const rankedPredictions = (Object.values(prodillosFromFile) as Array<{ user: string; predict: number }>).map(({ user, predict }) => {
