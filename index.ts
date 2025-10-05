@@ -67,7 +67,14 @@ function loadProdillos() {
 
 // STARTING EVENT
 client.on('ready', async () => {
-  console.log(execSync('git log -1 --pretty=%B').toString().trim())
+  try {
+    const commitMessage = execSync('git log -1 --pretty=%B').toString().trim();
+    console.log(commitMessage);
+  } catch (error: any) {
+    console.warn('No se pudo obtener info de Git (posiblemente no es un repo o Git no disponible):', error.message);
+    console.log('Versión: No disponible (entorno Docker o sin Git)');
+  }
+
   console.log(`${client.user?.tag} ready on Discord!`);
   client.guilds.cache.forEach((guild: { channels: { cache: any[]; }; name: any; }) => {
     guild.channels.cache.forEach(async (channel) => {
