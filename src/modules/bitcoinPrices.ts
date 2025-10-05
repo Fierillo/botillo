@@ -7,7 +7,7 @@ const fs = require('fs');
 
 const TIME_INTERVAL = 1000 * 420;
 
-const BITCOIN_FILE = path.join(__dirname, '../db/bitcoin.json');
+const BITCOIN_FILE = path.join(process.cwd(), 'src/db/bitcoin.json');
 
 let lastPrices = { price: 0, min: 0, max: 0 };
 let bitcoinPrices = {

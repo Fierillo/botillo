@@ -22,8 +22,8 @@ const client = new Client({
   ] 
 });
 
-const PRODILLOS_FILE = path.join(__dirname, '/src/db/prodillos.json');
-const BITCOIN_FILE = path.join(__dirname, '/src/db/bitcoin.json');
+const PRODILLOS_FILE = path.join(process.cwd(), 'src/db/prodillos.json');
+const BITCOIN_FILE = path.join(process.cwd(), 'src/db/bitcoin.json');
 
 client.login(process.env.DISCORD_TOKEN_ORIGINAL!);
 

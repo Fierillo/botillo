@@ -5,9 +5,9 @@ import { deadline } from './deadline';
 import path from 'path';
 import { Telegraf, Context } from 'telegraf';
 
-const PRODILLOS_FILE = path.join(__dirname, '../db/prodillos.json');
-const BITCOIN_FILE = path.join(__dirname, '../db/bitcoin.json');
-const TROFEILLOS_FILE = path.join(__dirname, '../db/trofeillos.json');
+const PRODILLOS_FILE = path.join(process.cwd(), 'src/db/prodillos.json');
+const BITCOIN_FILE = path.join(process.cwd(), 'src/db/bitcoin.json');
+const TROFEILLOS_FILE = path.join(process.cwd(), 'src/db/trofeillos.json');
 const PRODILLO_ROUND_CHECK_INTERVAL = 1000 * 69;
 
 let trofeillos: Record<string, { champion: string; trofeillo: string[] }> = {};
