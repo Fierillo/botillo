@@ -108,7 +108,7 @@ function seViene() {
   setTimeout(seViene, Math.random() * ((69 - 1)*3600*1000) + 1 * 3600*1000);
 };
 
-schedule.scheduleJob('0 21 * * *', async () => {
+schedule.scheduleJob('0 00 * * *', async () => {
   const { max, min } = await getBitcoinPrices();
   
   bitcoinPrices.lastReportedMax = max;
@@ -137,7 +137,7 @@ client.on('messageCreate', async (message: { content: string; channel: TextChann
     (message.channel as TextChannel).send(`🦁 máximo diario de ₿: $${max} (${(100*(max/bitcoinPrices.bitcoinATH)).toFixed(1)}% del ATH)\n🐻 mínimo diario de ₿: $${min}\n🔺 Volatilidad diaria: $${max-min} (${(100*(max/min)-100).toFixed(1)}%)\n🚀 ATH de ₿: $${bitcoinPrices.bitcoinATH}`);
 }});
 
-schedule.scheduleJob('0 8 * * *', () => { 
+schedule.scheduleJob('0 11 * * *', () => { 
   for (const channelId in discordChannels) {
     discordChannels[channelId].send(`GM humanos 🧉`);
   }
