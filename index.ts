@@ -8,7 +8,9 @@ const fs = require('fs');
 const path = require('path');
 import { createInvoiceREST } from './src/modules/donacioncilla';
 import { getListilla, getProdillo, getTrofeillos, prodilloInterval, saveValues } from './src/modules/prodillo';
+import { startPaymentChecker } from './src/modules/paymentChecker';
 import { bitcoinPrices, getBitcoinPrices, loadValues, trackBitcoinPrice, telegramChats, discordChannels } from './src/modules/bitcoinPrices';
+import { Message } from "telegraf/typings/core/types/typegram";
 //import { getTest } from "./src/modules/test";
 
 config();
@@ -36,6 +38,24 @@ function ensureChatIsSaved(ctx: Context) {
     telegramChats[ctx.chat.id] = chatName || 'Unknown';
     console.log(`Chat guardado: ${chatName} [${ctx.chat.id}]`);
   }
+}
+
+async function launchBotWithRetry(bot: Telegraf, retries = 5, delay = 10000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      await bot.launch();
+      console.log('Botillo is alive in Telegram!');
+      return;
+    } catch (error) {
+      console.error(`Error launching bot (attempt ${i + 1}/${retries}):`, error);
+      if (i < retries - 1) {
+        console.log(`Retrying in ${delay / 1000} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  console.error('Failed to launch bot after all retries. Exiting.');
+  process.exit(1);
 }
 
 bot.catch((err, ctx) => {
@@ -87,11 +107,11 @@ client.on('ready', async () => {
   
   await loadProdillos();
   await loadValues();
-  trackBitcoinPrice(bot); 
+  trackBitcoinPrice(bot);
   setTimeout(() => prodilloInterval(bot, telegramChats, prodillos, bitcoinPrices), 420);
   setTimeout(seViene, Math.random() * ((69 - 1)*3600*1000) + 1 * 3600*1000);
-  bot.launch();
-  console.log('Botillo is alive in Telegram!');
+  startPaymentChecker(bot);
+  launchBotWithRetry(bot);
 });
 
 function seViene() {
@@ -182,7 +202,7 @@ bot.start((ctx) => welcome(ctx));
 
 bot.command(['prodillo', 'prodillo@botillo21_bot'], async (ctx) => {
   ensureChatIsSaved(ctx);
-  getProdillo(ctx, prodillos, bitcoinPrices);
+  getProdillo(ctx, prodillos, bitcoinPrices, bot);
 });
 
 bot.command(['listilla', 'listilla@botillo21_bot'], (ctx) => {
@@ -236,7 +256,7 @@ bot.on(message('text'), async (ctx) => {
   ensureChatIsSaved(ctx);
 
   const botUsername = ctx.botInfo.username;
-  const repliedToBot = ctx.message.reply_to_message?.from?.id === ctx.botInfo.id;
+  const repliedToBot = (ctx.message as Message.TextMessage).reply_to_message?.from?.id === ctx.botInfo.id;
   const mentionedBot = ctx.message.text.includes(`@${botUsername}`);
 
   if ((repliedToBot || mentionedBot) && ctx.message.text.endsWith('?')) {

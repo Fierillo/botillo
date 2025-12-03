@@ -1,13 +1,15 @@
 import fs from 'fs/promises';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { getBitcoinPrices } from './bitcoinPrices';
-import { deadline } from './deadline'; 
+import { deadline } from './deadline';
 import path from 'path';
 import { Telegraf, Context } from 'telegraf';
+import qrcode from 'qrcode';
+import { createInvoice } from './nwcService';const PRODILLOS_FILE = path.join(process.cwd(), 'src/db/prodillos.json');
 
-const PRODILLOS_FILE = path.join(process.cwd(), 'src/db/prodillos.json');
 const BITCOIN_FILE = path.join(process.cwd(), 'src/db/bitcoin.json');
 const TROFEILLOS_FILE = path.join(process.cwd(), 'src/db/trofeillos.json');
+const PENDING_FILE = path.join(process.cwd(), 'src/db/pendingProdillos.json');
 const PRODILLO_ROUND_CHECK_INTERVAL = 1000 * 69;
 
 let trofeillos: Record<string, { champion: string; trofeillo: string[] }> = {};
@@ -27,6 +29,13 @@ type BitcoinPriceTracker = {
   lastReportedMin: number;
   bitcoinMax: number;
   bitcoinMaxBlock: number;
+};
+
+type PendingProdillo = {
+  user: string;
+  predict: number;
+  chatId: number;
+  invoiceId: string;
 };
 
 async function saveValues(filePath: string, key: string, value: number) {
@@ -122,17 +131,19 @@ async function prodilloRoundManager(
       prodilloState.hasRoundWinnerBeenAnnounced = true;
       console.log(`Round finished! Winner: ${prodilloState.winnerName} [${winnerId}]`);
     }
+
     await new Promise(resolve => setTimeout(resolve, PRODILLO_ROUND_CHECK_INTERVAL));
   }
 };
 
 async function getProdillo(
-  ctx: Context, 
-  prodillo: Record<string, { user: string; predict: number; }>, 
-  bitcoinPrices: BitcoinPriceTracker
+  ctx: Context,
+  prodillo: Record<string, { user: string; predict: number; }>,
+  bitcoinPrices: BitcoinPriceTracker,
+  bot: Telegraf
 ) {
   const { winnerDeadline, prodilleableDeadline } = await deadline();
-  
+
   if(!prodilloState.isPredictionWindowOpen && !prodilloState.isTest) {
     return ctx.reply(`¡Tarde, loko/a! La ventana de predicciones está cerrada.\nEspera ${winnerDeadline} bloques para que comience la nueva ronda.`);
   }
@@ -141,7 +152,7 @@ async function getProdillo(
     console.error("ctx.from is undefined.");
     return;
   }
-  
+
   const text = (ctx.message as any).text;
   const args = text.split(' ');
   const predict = Math.round(Number(args[1]));
@@ -155,16 +166,51 @@ async function getProdillo(
     if (Object.values(currentProdillos).some((p: any) => p.predict === predict)) {
       return ctx.reply(`Ese prodillo ya existe. ¡Elegí otro valor, loko/a!`);
     }
-    
+
     if (predict < bitcoinPrices.bitcoinMax) {
       return ctx.reply(`Tenes que ingresar un valor mayor a $${bitcoinPrices.bitcoinMax} para tener chance.\n¡Mentalidad de tiburón, loko/a!`);
     }
-    
-    currentProdillos[userId] = { user, predict };
-    await fs.writeFile(PRODILLOS_FILE, JSON.stringify(currentProdillos, null, 2));
-    
-    ctx.reply(`Prodillo de ${user} registrado: $${predict}\n\n🟧⛏️ Tiempo para predecir: ${prodilleableDeadline} bloques\n🏁 Tiempo para el ganador: ${winnerDeadline} bloques`);
-    console.log(`Registered prodillo of ${user} [${userId}]: ${predict}`);
+
+    try {
+      const { bolt11, invoiceId } = await createInvoice(21, userId, user.toString(), predict.toString());
+
+      const pending: Record<string, PendingProdillo> = existsSync(PENDING_FILE)
+        ? JSON.parse(readFileSync(PENDING_FILE, 'utf-8'))
+        : {};
+      pending[userId] = { 
+        user: user || 'Anónimo', 
+        predict, 
+        chatId: (ctx.chat as any).id, 
+        invoiceId 
+      };
+      writeFileSync(PENDING_FILE, JSON.stringify(pending, null, 2));
+
+      const qrCode = await qrcode.toDataURL(bolt11);
+      const qrBuffer = Buffer.from(qrCode.split(',')[1], 'base64');
+
+      const instruction = `*¡Prodillo de $${predict} activado!*\n\n` +
+        `Necesitás pagar 21 sats para participar.\n\n` +
+        `→ Escanea el QR debajo\n` +
+        `→ O copia el invoice\n\n` +
+        `Se confirma **automáticamente** cuando pagues 🚀`;
+
+      await bot.telegram.sendPhoto(userId, { source: qrBuffer });
+      await bot.telegram.sendMessage(
+        userId,
+        `\`\`\`\n${bolt11}\n\`\`\``,
+        { parse_mode: 'Markdown' }
+      ).catch(err => console.error('Error sending DM:', err));
+      
+      await bot.telegram.sendMessage(userId, instruction, { parse_mode: 'Markdown' })
+        .catch(err => console.error('Error sending instruction DM:', err));
+
+      ctx.reply(`¡Enviado por DM, loko/a! Pagá ya tu prodillo de $${predict} antes de que vuele 🚀`);
+      console.log(`Pending prodillo of ${user} [${userId}]: ${predict}`);
+
+    } catch (error: any) {
+      console.error('Error en getProdillo:', error);
+      ctx.reply('Error al crear la invoice. Revisa tu conexión y probá de nuevo.');
+    }
   } else {
     ctx.reply('¡Ingresaste cualquier cosa, loko/a!\n\nUso: /prodillo <numero>');
   }
