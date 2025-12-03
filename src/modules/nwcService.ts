@@ -24,6 +24,7 @@ export interface PaymentRecord {
   description: string;
   paymentHash: string;
   paidAt?: number;
+  expiresAt?: number;
   amount: number;
 }
 
@@ -61,6 +62,7 @@ export async function createInvoice(amountSats: number, userId, user: string, pr
     const response = await nwcClient.makeInvoice({
       amount: amountSats * 1000, // convert to msats
       description,
+      expiry: 600, // 10 minutes
     });
 
     if (!response || !response.invoice || !response.payment_hash) {
@@ -70,6 +72,9 @@ export async function createInvoice(amountSats: number, userId, user: string, pr
     const bolt11 = response.invoice;
     const paymentHash = response.payment_hash;
     const invoiceId = `inv-${userId}-${Date.now()}`;
+    const createdAt = response.created_at || Math.floor(Date.now() / 1000);
+    // prefer provider's expires_at if present, fallback to createdAt+600
+    const expiresAt = response.expires_at || (createdAt + 60 * 10); // 10 minutes
 
     // Store invoice info for polling
     invoices.set(invoiceId, {
@@ -77,6 +82,7 @@ export async function createInvoice(amountSats: number, userId, user: string, pr
       bolt11,
       description,
       paymentHash,
+      expiresAt,
       amount: amountSats,
     });
     
@@ -110,6 +116,13 @@ export async function checkPaymentStatus(invoiceId: string): Promise<boolean> {
 
     console.log(`Checking payment status for ${invoiceId}`);
     console.log(`   Payment Hash: ${record.paymentHash}`);
+
+    // Check expiry (app-level: 10 minutes)
+    const nowSec = Math.floor(Date.now() / 1000);
+    if (record.expiresAt && nowSec > record.expiresAt) {
+      console.log(`⏰ Invoice ${invoiceId} expired at ${new Date(record.expiresAt * 1000).toISOString()}`);
+      return false;
+    }
 
     // List recent transactions from NWC
     const response = await nwcClient.listTransactions({

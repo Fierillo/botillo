@@ -188,11 +188,9 @@ async function getProdillo(
       const qrCode = await qrcode.toDataURL(bolt11);
       const qrBuffer = Buffer.from(qrCode.split(',')[1], 'base64');
 
-      const instruction = `*¡Prodillo de $${predict} activado!*\n\n` +
+      const instruction = `*¡Prodillo de $${predict} pendiente de pago!*\n\n` +
         `Necesitás pagar 21 sats para participar.\n\n` +
-        `→ Escanea el QR debajo\n` +
-        `→ O copia el invoice\n\n` +
-        `Se confirma **automáticamente** cuando pagues 🚀`;
+        `→ Escanea el QR o copia el invoice\n`;
 
       await bot.telegram.sendPhoto(userId, { source: qrBuffer });
       await bot.telegram.sendMessage(
@@ -204,7 +202,9 @@ async function getProdillo(
       await bot.telegram.sendMessage(userId, instruction, { parse_mode: 'Markdown' })
         .catch(err => console.error('Error sending instruction DM:', err));
 
-      ctx.reply(`¡Enviado por DM, loko/a! Pagá ya tu prodillo de $${predict} antes de que vuele 🚀`);
+      ctx.reply(`¡Prodillo de [${user}](tg://user?id=${userId}): $${predict} PENDIENTE DE PAGO, te mande MD loko/a\n\n` +
+        `¡apúrate a pagarlo, tenes 10 minutos!`, { parse_mode: 'Markdown' }
+      );
       console.log(`Pending prodillo of ${user} [${userId}]: ${predict}`);
 
     } catch (error: any) {
