@@ -66,11 +66,9 @@ export async function startPaymentChecker(bot: Telegraf) {
         }
 
         try {
-          const isPaid = await checkPaymentStatus(item.invoiceId);
+          const isPaid = await checkPaymentStatus(item.invoiceId, item.user, userId, item.predict);
           
           if (isPaid) {
-            console.log(`✅ Payment confirmed for ${item.user} [${userId}]: $${item.predict}`);
-            
             // Add to prodillos
             const currentProdillos = JSON.parse(await fs.readFile(PRODILLOS_FILE, 'utf-8'));
             currentProdillos[userId] = { user: item.user, predict: item.predict };

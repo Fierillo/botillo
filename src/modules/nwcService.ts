@@ -101,7 +101,7 @@ export async function createInvoice(amountSats: number, userId, user: string, pr
   }
 }
 
-export async function checkPaymentStatus(invoiceId: string): Promise<boolean> {
+export async function checkPaymentStatus(invoiceId: string, user: string, userId: string, predict: string): Promise<boolean> {
   try {
     const record = invoices.get(invoiceId);
     if (!record) {
@@ -142,7 +142,7 @@ export async function checkPaymentStatus(invoiceId: string): Promise<boolean> {
     );
 
     if (transaction) {
-      console.log(`✅ Payment CONFIRMED for ${invoiceId}`);
+      console.log(`✅ Payment confirmed for ${user} [${userId}]: $${predict}`);
       console.log(`   Amount: ${transaction.amount} msats (${transaction.amount / 1000} sats)`);
       console.log(`   Settled at: ${new Date(transaction.settled_at * 1000).toISOString()}`);
       record.paidAt = Date.now();
