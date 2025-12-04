@@ -12,7 +12,20 @@ const TROFEILLOS_FILE = path.join(process.cwd(), 'src/db/trofeillos.json');
 const PENDING_FILE = path.join(process.cwd(), 'src/db/pendingProdillos.json');
 const PRODILLO_ROUND_CHECK_INTERVAL = 1000 * 69;
 
-let trofeillos: Record<string, { champion: string; trofeillo: string[] }> = {};
+export interface TrofeillosChampion {
+  champion: string;
+  "trofeillos amateur"?: string[];
+  "trofeillos profesionales"?: string[];
+}
+
+export interface TrofeillosDB {
+  currentChampion?: string | null;
+  currentChampionId?: string | null;
+
+  [userId: string]: TrofeillosChampion | string | null | undefined;
+}
+
+export let trofeillos = {} as TrofeillosDB;
 const TROPHY_ICON = '🏆';
 
 let prodilloState = {
@@ -20,7 +33,7 @@ let prodilloState = {
   isPredictionWindowOpen: true,
   hasRoundWinnerBeenAnnounced: false,
   forceNextRound: false,
-  isTest: false,
+  isTest: false
 };
 
 type BitcoinPriceTracker = {
@@ -105,19 +118,31 @@ async function prodilloRoundManager(
       });
 
       try {
-        trofeillos = JSON.parse(readFileSync(TROFEILLOS_FILE, 'utf-8'));
+        const data = readFileSync(TROFEILLOS_FILE, 'utf-8');
+        trofeillos = JSON.parse(data);
       } catch (error) {
-        console.log('Could not read trofeillos.json, creating a new one.');
-        trofeillos = {};
+        console.log(`trofeillos.json doesn't exist → creating new one`);
+        trofeillos = { currentChampion: null, currentChampionId: null };
       }
 
-      const newTrophy = `${TROPHY_ICON}[${bitcoinPrices.bitcoinMaxBlock}]`;
+      const trophy = `${TROPHY_ICON} [${bitcoinPrices.bitcoinMaxBlock}]`;
+      
       if (!trofeillos[winnerId]) {
-        trofeillos[winnerId] = { champion: prodilloState.winnerName, trofeillo: [newTrophy] };
+        trofeillos[winnerId] = {
+          champion: prodilloState.winnerName,
+          "trofeillos profesionales": [trophy]
+        };
       } else {
-        trofeillos[winnerId].trofeillo.push(newTrophy);
+        const entry = trofeillos[winnerId] as TrofeillosChampion;
+        if (!entry["trofeillos profesionales"]) {
+          entry["trofeillos profesionales"] = [];
+        }
+        entry["trofeillos profesionales"]!.push(trophy);
       }
     
+      trofeillos.currentChampion = prodilloState.winnerName;
+      trofeillos.currentChampionId = winnerId;
+      
       writeFileSync(TROFEILLOS_FILE, JSON.stringify(trofeillos, null, 2));
 
       bitcoinPrices.bitcoinMax = 0;
@@ -274,22 +299,69 @@ async function getListilla(
 
 async function getTrofeillos(ctx: Context) {
   if (!existsSync(TROFEILLOS_FILE)) {
-    writeFileSync(TROFEILLOS_FILE, JSON.stringify({}, null, 2));
+    writeFileSync(
+      TROFEILLOS_FILE,
+      JSON.stringify(
+        {
+          currentChampion: null,
+          currentChampionId: null,
+        },
+        null,
+        2
+      )
+    );
   }
-  
+
   try {
-    const currentTrofeillos = JSON.parse(readFileSync(TROFEILLOS_FILE, 'utf-8'));
-    let championsList = "";
-    for (const [, data] of Object.entries(currentTrofeillos)) {
-      const typedData = data as { champion: string, trofeillo: string[] };
-      championsList += `\n- ${typedData.champion}: ${typedData.trofeillo.join(' ')}`;
+    const rawData = JSON.parse(readFileSync(TROFEILLOS_FILE, "utf-8")) as Record<
+      string,
+      any
+    >;
+
+    const currentChampion = (rawData.currentChampion as string | null) ?? "N/A";
+
+    let amateurList = "";
+    let profesionalList = "";
+
+    for (const [key, value] of Object.entries(rawData)) {
+      if (key === "currentChampion" || key === "currentChampionId") continue;
+
+      const champData = value as {
+        champion: string;
+        "trofeillos amateur"?: string[];
+        "trofeillos profesionales"?: string[];
+      };
+
+      const amateurTrophies = (champData["trofeillos amateur"] ?? []).join(" ");
+      const proTrophies = (champData["trofeillos profesionales"] ?? []).join(" ");
+
+      if (amateurTrophies) {
+        amateurList += `\n- ${champData.champion}: ${amateurTrophies}`;
+      }
+      if (proTrophies) {
+        profesionalList += `\n- ${champData.champion}: ${proTrophies}`;
+      }
     }
-    
-    const message = `<pre><b>SALA DE TROFEILLOS</b>\n\nÚltimo campeón: ${prodilloState.winnerName || 'N/A'}\n${'-'.repeat(45)}${championsList || '\nNo hay ganadores aún.'}</pre>`;
-    ctx.reply(message, { parse_mode: 'HTML' });
+
+    let message = `<pre><b>SALA DE TROFEILLOS</b>\n\n`;
+    message += `Último campeón: <b>${currentChampion}</b>\n`;
+    message += `${"=".repeat(45)}\n`;
+
+    if (amateurList) {
+      message += `\n<b>ÉPOCA AMATEUR</b>${amateurList}\n`;
+    }
+    if (profesionalList) {
+      message += `\n<b>ÉPOCA PROFESIONAL</b> (21 sats)${profesionalList}\n`;
+    }
+    if (!amateurList && !profesionalList) {
+      message += `\nNo hay ganadores aún.`;
+    }
+
+    message += `</pre>`;
+    await ctx.reply(message, { parse_mode: "HTML" });
   } catch (e) {
-    console.error(`CRITICAL ERROR: Couldn't read trofeillos.json file`, e);
-    ctx.reply('Hubo un error al buscar la sala de trofeos.');
+    console.error("CRITICAL ERROR: Couldn't read trofeillos.json file", e);
+    await ctx.reply("Hubo un error al buscar la sala de trofeos.");
   }
 }
 
