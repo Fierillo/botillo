@@ -10,6 +10,7 @@ import { getListilla, getProdillo, getTrofeillos, prodilloInterval, saveValues }
 import { startPaymentChecker } from './src/modules/paymentChecker';
 import { bitcoinPrices, getBitcoinPrices, loadValues, trackBitcoinPrice, telegramChats, discordChannels } from './src/modules/bitcoinPrices';
 import { Message } from "telegraf/typings/core/types/typegram";
+import { getGracefulShutdown } from "./src/modules/gracefulShutdown";
 //import { getTest } from "./src/modules/test";
 
 config();
@@ -26,7 +27,7 @@ const client = new Client({
 const PRODILLOS_FILE = path.join(process.cwd(), 'src/db/prodillos.json');
 const BITCOIN_FILE = path.join(process.cwd(), 'src/db/bitcoin.json');
 
-client.login(process.env.DISCORD_TOKEN_ORIGINAL!);
+client.login(process.env.DISCORD_BOT_TOKEN!);
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!;
 const bot = new Telegraf(TELEGRAM_BOT_TOKEN);
@@ -255,5 +256,5 @@ bot.on(message('text'), async (ctx) => {
   };
 });
 
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
+getGracefulShutdown(bot, client, prodillos, bitcoinPrices, discordChannels);
+
