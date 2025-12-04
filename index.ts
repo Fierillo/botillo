@@ -6,7 +6,6 @@ import { message } from 'telegraf/filters';
 const schedule = require('node-schedule');
 const fs = require('fs');
 const path = require('path');
-import { createInvoiceREST } from './src/modules/donacioncilla';
 import { getListilla, getProdillo, getTrofeillos, prodilloInterval, saveValues } from './src/modules/prodillo';
 import { startPaymentChecker } from './src/modules/paymentChecker';
 import { bitcoinPrices, getBitcoinPrices, loadValues, trackBitcoinPrice, telegramChats, discordChannels } from './src/modules/bitcoinPrices';
@@ -219,22 +218,14 @@ bot.command(['donacioncilla', 'donacioncilla@botillo21_bot'], async (ctx) => {
   ensureChatIsSaved(ctx);
   const userId = ctx.from.id;
   const user = ctx.from.username;
-  const args = ctx.message.text.split(' ');
-  args.shift();
-  const amountStr = args.join(' ');
-  const amount = Math.round(Number(amountStr));
 
-  if (userId && user && !isNaN(amount) && amount >= 0 && isFinite(amount)) {
-    try {
-      const invoice = await createInvoiceREST(amount, `Donación de ${amount} satoshis`);
-      console.log(`🟨 ¡User ${user} [${userId}] wants to donate ${amount} sats!`);
-      await ctx.reply(`🍾 ¡Gracias por querer donar ${amount} satoshi${amount > 1 ? 's' : ''} loko/a! 🙏\n\n¡Toma, paga aca!: ${invoice.request}`);
-    } catch (error) {
-      console.error(`❌ error when ${user} [${userId}] tried to donate ${amount} sats`, error);
-      await ctx.reply('❌ Lo siento loko, hubo un error al generar el invoice, proba devuelta');
-    }
-  } else {
-    await ctx.reply('❌ ¡Ingresaste cualquier cosa loko!\n\n/donacioncilla <monto en satoshis>');
+  try {
+    const lightningAddress = process.env.LIGHTNING_ADDRESS;
+    console.log(`🟨 ¡User ${user} [${userId}] wants to donate!`);
+    await ctx.reply(`🍾 ¡Gracias por querer donar loko/a! 🙏\n\nManda sats a: ${lightningAddress}`);
+  } catch (error) {
+    console.error(`❌ error when ${user} [${userId}] tried to access donation`, error);
+    await ctx.reply('❌ Lo siento loko, hubo un error al obtener la dirección. Proba devuelta');
   }
 });
 
