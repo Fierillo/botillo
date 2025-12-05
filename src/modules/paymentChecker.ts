@@ -69,16 +69,15 @@ export async function startPaymentChecker(bot: Telegraf) {
           const isPaid = await checkPaymentStatus(item.invoiceId, item.user, userId, item.predict);
           
           if (isPaid) {
-            // Add to prodillos
             const currentProdillos = JSON.parse(await fs.readFile(PRODILLOS_FILE, 'utf-8'));
             currentProdillos[userId] = { user: item.user, predict: item.predict };
             await fs.writeFile(PRODILLOS_FILE, JSON.stringify(currentProdillos, null, 2));
             
-            // Send confirmations
+            if (item.chatId !== userId) {
             await bot.telegram.sendMessage(item.chatId, `¡Pago confirmado! Prodillo de [${item.user}](tg://user?id=${userId}) registrado: $${item.predict}`, { parse_mode: 'Markdown' }).catch(console.error);
+            }
             await bot.telegram.sendMessage(userId, `¡Pago confirmado! Tu prodillo de $${item.predict} ha sido registrado.`).catch(console.error);
             
-            // Remove from pending
             delete pending[userId];
             writeFileSync(PENDING_FILE, JSON.stringify(pending, null, 2));
           }

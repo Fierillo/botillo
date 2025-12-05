@@ -32,7 +32,7 @@ let prodilloState = {
   winnerName: '',
   isPredictionWindowOpen: true,
   hasRoundWinnerBeenAnnounced: false,
-  forceNextRound: false,
+  forceWin: false,
   isTest: false
 };
 
@@ -91,7 +91,7 @@ async function prodilloRoundManager(
     
     const isRoundOver = (winnerDeadline === 0 || winnerDeadline > 2010) && !prodilloState.hasRoundWinnerBeenAnnounced;
 
-    if (isRoundOver || prodilloState.forceNextRound) {
+    if (isRoundOver || prodilloState.forceWin) {
       const currentProdillos = JSON.parse(await fs.readFile(PRODILLOS_FILE, 'utf-8'));
       
       const sortedProdillos = Object.entries(currentProdillos).sort(([,a]: any,[,b]: any) => 
@@ -227,9 +227,10 @@ async function getProdillo(
       await bot.telegram.sendMessage(userId, instruction, { parse_mode: 'Markdown' })
         .catch(err => console.error('Error sending instruction DM:', err));
 
-      ctx.reply(`¡Prodillo de [${user}](tg://user?id=${userId}): $${predict} PENDIENTE DE PAGO, te mande MD loko/a\n\n` +
-        `¡apúrate a pagarlo, tenes 10 minutos!`, { parse_mode: 'Markdown' }
-      );
+      if (ctx.chat?.type !== 'private') {
+        ctx.reply(`¡Prodillo de [${user}](tg://user?id=${userId}): $${predict} PENDIENTE DE PAGO, te mande MD loko/a\n\n` +
+          `¡apúrate a pagarlo, tenes 10 minutos!`, { parse_mode: 'Markdown' });
+      }
       console.log(`Pending prodillo of ${user} [${userId}]: ${predict}`);
 
     } catch (error: any) {
