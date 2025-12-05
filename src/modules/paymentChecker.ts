@@ -14,13 +14,21 @@ const INVOICES_CACHE_FILE = path.join(process.cwd(), 'src/db/invoicesCache.json'
 export async function startPaymentChecker(bot: Telegraf) {
   console.log('Starting payment checker (polling via NWC)...');
   
-  try {
-    await initializeNWC();
-  } catch (error) {
-    console.error('Failed to initialize NWC, payment checker will retry on next check');
+  for (let i = 1; i <= 10; i++) {
+    try {
+      await initializeNWC();
+      console.log(`NWC connected at the ${i} intent`);
+      break;
+    } catch (e) {
+      console.warn(`Try ${i}/10 to connect NWC, retrying in 8s...`);
+      if (i === 10) {
+        console.error(`Can't connect NWC. Bot can't use prodillo.`);
+      } else {
+        await new Promise(r => setTimeout(r, 8000));
+      }
+    }
   }
 
-  // Poll pending invoices every 10s
   setInterval(async () => {
     try {
       if (!existsSync(PENDING_FILE)) return;
@@ -43,7 +51,6 @@ export async function startPaymentChecker(bot: Telegraf) {
           continue;
         }
 
-        // Verify invoice exists in cache
         if (!invoicesCache[item.invoiceId]) {
           console.log(`⚠️ Invoice ${item.invoiceId} not in cache, removing from pending`);
           delete pending[userId];
@@ -51,14 +58,11 @@ export async function startPaymentChecker(bot: Telegraf) {
           continue;
         }
 
-        // Check invoice expiry (app-level)
         const nowSec = Math.floor(Date.now() / 1000);
         const invoiceRecord = invoicesCache[item.invoiceId];
         if (invoiceRecord && invoiceRecord.expiresAt && nowSec > invoiceRecord.expiresAt) {
           console.log(`⏰ Invoice ${item.invoiceId} expired for user ${userId}, removing pending`);
-          // Notify user that invoice expired
           await bot.telegram.sendMessage(userId, `Tu invoice para el prodillo de $${item.predict} expiró. Volvé a crear el prodillo con /prodillo ${item.predict}`).catch(console.error);
-          // Optionally notify the chat
           await bot.telegram.sendMessage(item.chatId, `La invoice de ${item.user} para $${item.predict} expiró y fue removida. El prodillo de $${item.predict} vuelve a estar disponible`).catch(console.error);
           delete pending[userId];
           writeFileSync(PENDING_FILE, JSON.stringify(pending, null, 2));
@@ -74,7 +78,7 @@ export async function startPaymentChecker(bot: Telegraf) {
             await fs.writeFile(PRODILLOS_FILE, JSON.stringify(currentProdillos, null, 2));
             
             if (item.chatId !== userId) {
-            await bot.telegram.sendMessage(item.chatId, `¡Pago confirmado! Prodillo de [${item.user}](tg://user?id=${userId}) registrado: $${item.predict}`, { parse_mode: 'Markdown' }).catch(console.error);
+              await bot.telegram.sendMessage(item.chatId, `¡Pago confirmado! Prodillo de [${item.user}](tg://user?id=${userId}) registrado: $${item.predict}`, { parse_mode: 'Markdown' }).catch(console.error);
             }
             await bot.telegram.sendMessage(userId, `¡Pago confirmado! Tu prodillo de $${item.predict} ha sido registrado.`).catch(console.error);
             

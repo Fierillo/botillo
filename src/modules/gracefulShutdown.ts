@@ -4,29 +4,42 @@ import { Client } from 'discord.js'
 import * as fs from 'fs'
 import * as path from 'path'
 
-const PRODILLOS_FILE   = path.join(process.cwd(), 'src/db/prodillos.json')
-const BITCOIN_FILE     = path.join(process.cwd(), 'src/db/bitcoin.json')
+const PRODILLOS_FILE = path.join(process.cwd(), 'src/db/prodillos.json')
+const BITCOIN_FILE = path.join(process.cwd(), 'src/db/bitcoin.json')
 
-const DESPEDIDA = 'Botillo se fue a dormir. Adios humano'
+const DESPEDIDA = 'Botillo goes to sleep. Goodbye human!'
 
 export const getGracefulShutdown = (
   bot: Telegraf,
   client: Client,
-  prodillos: Record<string, any>,
-  bitcoin: Record<string, any>,
+  prodillos: Record<string, any>,  
+  bitcoin: Record<string, any>,    
   discordChannels: Record<string, any>,
 ) => {
   let shuttingDown = false
   const exit = (code = 0) => process.exit(code)
 
-  const saveFile = async (filePath: string, data: any, label: string) => {
-    try {
+  type SaveResult = {
+    status: 'fulfilled' | 'rejected';
+    label: string;
+    error?: any;
+  };
+
+  const saveFile = async (filePath: string, data: any, label: string, fallbackPath?: string): Promise<SaveResult> => {    try {
+      console.log(`🔄 Saving ${label}`)
+
+      if (Object.keys(data).length === 0 && fallbackPath && fs.existsSync(fallbackPath)) {
+        console.warn(`⚠️ ${label} empty in memory → using file`)
+        const fallbackData = JSON.parse(await fs.promises.readFile(fallbackPath, 'utf8'))
+        data = fallbackData
+      }
+
       await fs.promises.writeFile(filePath, JSON.stringify(data, null, 2))
-      console.log(`${label} guardado`)
-      return { status: 'fulfilled', label }
+      console.log(`✅ ${label} saved successfully`)
+      return { status: 'fulfilled' as const, label };
     } catch (err) {
-      console.error(`${label} → fallo al guardar`, err)
-      return { status: 'rejected', label, error: err }
+      console.error(`❌ ${label} → failed to save`, err)
+      return { status: 'rejected' as const, label, error: err };
     }
   }
 
@@ -34,34 +47,58 @@ export const getGracefulShutdown = (
     if (shuttingDown) exit(1)
     shuttingDown = true
 
-    console.log(signal)
+    console.log(`🛑 Shutdown started: ${signal}`)
 
-    const saveTasks = await Promise.allSettled([
-      saveFile(PRODILLOS_FILE,  prodillos,   'prodillos.json'),
-      saveFile(BITCOIN_FILE,    bitcoin,     'bitcoin.json'),
-    ])
+    const channelsFile = path.join(process.cwd(), 'src/db/discordChannels.json')
+    await saveFile(channelsFile, discordChannels, 'discordChannels.json')
 
-    const failed = saveTasks.filter(r => r.status === 'rejected')
-    if (failed.length > 0) {
-      console.error(`Fallaron ${failed.length} archivo(s) al guardar`)
+    const savePromises: Promise<SaveResult>[] = [
+      saveFile(PRODILLOS_FILE, prodillos, 'prodillos.json', PRODILLOS_FILE),
+      saveFile(BITCOIN_FILE, bitcoin, 'bitcoin.json', BITCOIN_FILE),
+    ];
+
+    const saveTasks = await Promise.allSettled(savePromises) as Array<{
+      status: 'fulfilled';
+      value: SaveResult;
+    } | {
+      status: 'rejected';
+      reason: any;
+    }>;
+
+    const failedLabels: string[] = [];
+    saveTasks.forEach((result) => {
+      if (result.status === 'rejected') {
+        console.error('Unexpected promise rejection:', result.reason);
+      } else {
+        const customResult = result.value;
+        if (customResult.status === 'rejected') {
+          failedLabels.push(customResult.label);
+        }
+      }
+    });
+
+    if (failedLabels.length > 0) {
+      console.error(`❌ Fallaron ${failedLabels.length} archivo(s): ${failedLabels.join(', ')}`);
+    } else {
+      console.log('📁 All data was persisted successfully');
     }
 
     try {
       await bot.stop(signal)
-      console.log('Telegram bot detenido')
+      console.log('Telegram bot stopped')
     } catch {
-      console.log('Telegram bot → ya estaba detenido')
+      console.log('Telegram bot → was stopped already')
     }
 
     if (client.isReady()) {
       client.destroy()
-      console.log('Discord client cerrado')
+      console.log('Discord client closed')
     } else {
-      console.log('Discord client → ya estaba cerrado')
+      console.log('Discord client → was closed already')
     }
 
     console.log(DESPEDIDA)
-    exit()
+    setTimeout(exit, 1000) 
   }
 
   process.removeAllListeners('SIGINT')
@@ -70,7 +107,7 @@ export const getGracefulShutdown = (
   process.once('SIGTERM', () => shutdown('SIGTERM'))
 
   process.on('uncaughtException', err => {
-    console.error('FATAL:', err)
+    console.error('💥 FATAL ERROR:', err)
     shutdown('crash')
   })
 }

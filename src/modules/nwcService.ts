@@ -1,13 +1,12 @@
 import { NWCClient } from '@getalby/sdk';
 import { config } from 'dotenv';
-import fs from 'fs/promises';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import path from 'path';
 
 config();
 
 if (!process.env.NWC_CONNECTION_STRING) {
-  throw new Error('NWC_CONNECTION_STRING no está definido en .env. Agrega tu NWC URI de Alby hub.');
+  throw new Error(`NWC_CONNECTION_STRING isn't defined in .env.`);
 }
 
 let nwcClient: NWCClient;
@@ -28,7 +27,6 @@ export interface PaymentRecord {
   amount: number;
 }
 
-// Store invoices in persistent file
 function loadInvoicesFromDisk(): Map<string, PaymentRecord> {
   const map = new Map<string, PaymentRecord>();
   if (existsSync(INVOICES_CACHE_FILE)) {
@@ -57,12 +55,10 @@ let invoices = loadInvoicesFromDisk();
 export async function createInvoice(amountSats: number, userId, user: string, predict: string): Promise<Invoice> {
   try {
     const description = `prodillo-${user}-${predict}`;
-    
-    // Request invoice from NWC wallet
     const response = await nwcClient.makeInvoice({
-      amount: amountSats * 1000, // convert to msats
+      amount: amountSats * 1000,
       description,
-      expiry: 600, // 10 minutes
+      expiry: 600, 
     });
 
     if (!response || !response.invoice || !response.payment_hash) {
@@ -73,10 +69,8 @@ export async function createInvoice(amountSats: number, userId, user: string, pr
     const paymentHash = response.payment_hash;
     const invoiceId = `inv-${userId}-${Date.now()}`;
     const createdAt = response.created_at || Math.floor(Date.now() / 1000);
-    // prefer provider's expires_at if present, fallback to createdAt+600
-    const expiresAt = response.expires_at || (createdAt + 60 * 10); // 10 minutes
+    const expiresAt = response.expires_at || (createdAt + 60 * 10); 
 
-    // Store invoice info for polling
     invoices.set(invoiceId, {
       invoiceId,
       bolt11,
@@ -86,7 +80,6 @@ export async function createInvoice(amountSats: number, userId, user: string, pr
       amount: amountSats,
     });
     
-    // Persist to disk
     saveInvoicesToDisk(invoices);
 
     console.log(`✅ Invoice created via NWC: ${bolt11.substring(0, 50)}...`);
@@ -117,14 +110,12 @@ export async function checkPaymentStatus(invoiceId: string, user: string, userId
     console.log(`Checking payment status for ${invoiceId}`);
     console.log(`   Payment Hash: ${record.paymentHash}`);
 
-    // Check expiry (app-level: 10 minutes)
     const nowSec = Math.floor(Date.now() / 1000);
     if (record.expiresAt && nowSec > record.expiresAt) {
       console.log(`⏰ Invoice ${invoiceId} expired at ${new Date(record.expiresAt * 1000).toISOString()}`);
       return false;
     }
 
-    // List recent transactions from NWC
     const response = await nwcClient.listTransactions({
       limit: 100,
     });
@@ -136,7 +127,6 @@ export async function checkPaymentStatus(invoiceId: string, user: string, userId
 
     console.log(`   Found ${response.transactions.length} transactions from NWC`);
 
-    // Look for a transaction matching the payment_hash (unique identifier)
     const transaction = response.transactions.find((t: any) => 
       t.payment_hash === record.paymentHash && t.state === 'settled'
     );
@@ -168,7 +158,6 @@ export async function initializeNWC(): Promise<void> {
     const publicKey = nwcClient.publicKey;
     console.log('✅ NWC connection established. Public key:', publicKey);
     
-    // Reload invoices from disk in case there are pending ones from before restart
     invoices = loadInvoicesFromDisk();
     console.log(`✅ Loaded ${invoices.size} invoices from cache`);
   } catch (error) {
