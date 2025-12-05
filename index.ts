@@ -256,5 +256,5 @@ bot.on(message('text'), async (ctx) => {
   };
 });
 
-getGracefulShutdown(bot, client, prodillos, bitcoinPrices, discordChannels);
+getGracefulShutdown(bot, client);
 

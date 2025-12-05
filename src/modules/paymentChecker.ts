@@ -17,7 +17,7 @@ export async function startPaymentChecker(bot: Telegraf) {
   for (let i = 1; i <= 10; i++) {
     try {
       await initializeNWC();
-      console.log(`NWC connected at the ${i} intent`);
+      console.log(`NWC connected at the ${i}th try`);
       break;
     } catch (e) {
       console.warn(`Try ${i}/10 to connect NWC, retrying in 8s...`);
@@ -77,7 +77,7 @@ export async function startPaymentChecker(bot: Telegraf) {
             currentProdillos[userId] = { user: item.user, predict: item.predict };
             await fs.writeFile(PRODILLOS_FILE, JSON.stringify(currentProdillos, null, 2));
             
-            if (item.chatId !== userId) {
+            if (item.chatType !== 'private') {
               await bot.telegram.sendMessage(item.chatId, `¡Pago confirmado! Prodillo de [${item.user}](tg://user?id=${userId}) registrado: $${item.predict}`, { parse_mode: 'Markdown' }).catch(console.error);
             }
             await bot.telegram.sendMessage(userId, `¡Pago confirmado! Tu prodillo de $${item.predict} ha sido registrado.`).catch(console.error);

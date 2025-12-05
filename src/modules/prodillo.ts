@@ -49,6 +49,7 @@ type PendingProdillo = {
   predict: number;
   chatId: number;
   invoiceId: string;
+  chatType: string;
 };
 
 async function saveValues(filePath: string, key: string, value: number) {
@@ -206,7 +207,8 @@ async function getProdillo(
         user: user || 'Anónimo', 
         predict, 
         chatId: (ctx.chat as any).id, 
-        invoiceId 
+        invoiceId,
+        chatType: ctx.chat.type 
       };
       writeFileSync(PENDING_FILE, JSON.stringify(pending, null, 2));
 
