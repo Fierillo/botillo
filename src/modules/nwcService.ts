@@ -1,3 +1,4 @@
+import "websocket-polyfill";
 import { NWCClient } from '@getalby/sdk';
 import { config } from 'dotenv';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
