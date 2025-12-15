@@ -186,11 +186,15 @@ async function getProdillo(
 
   if (user && !isNaN(predict) && predict >= 0 && isFinite(predict)) {
     const currentProdillos = JSON.parse(await fs.readFile(PRODILLOS_FILE, 'utf-8'));
+    const pendingProdillos = existsSync(PENDING_FILE) 
+      ? JSON.parse(readFileSync(PENDING_FILE, 'utf-8')) 
+      : {};
     const bitcoinData = JSON.parse(await fs.readFile(BITCOIN_FILE, 'utf-8'));
     bitcoinPrices.bitcoinMax = bitcoinData.bitcoinMax;
 
-    if (Object.values(currentProdillos).some((p: any) => p.predict === predict)) {
-      return ctx.reply(`Ese prodillo ya existe. ¡Elegí otro valor, loko/a!`);
+    if (Object.values(currentProdillos).some((p: any) => p.predict === predict) ||
+        Object.values(pendingProdillos).some((p: any) => p.predict === predict)) {
+      return ctx.reply(`Ese prodillo ya está tomado (pendiente o pagado). ¡Elegí otro valor, loko/a!`);
     }
 
     if (predict < bitcoinPrices.bitcoinMax) {
