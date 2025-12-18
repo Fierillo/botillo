@@ -4,6 +4,7 @@ import path from 'path';
 import { Telegraf } from 'telegraf';
 import { config } from "dotenv";
 import { checkPaymentStatus, initializeNWC } from './nwcService';
+import { telegramChats } from './bitcoinPrices';
 
 config();
 
@@ -42,8 +43,6 @@ export async function startPaymentChecker(bot: Telegraf) {
       
       if (keys.length === 0) return;
       
-      console.log('Payment checker: checking', keys.length, 'pending prodillos');
-      
       for (const userId of keys) {
         const item = pending[userId];
         if (!item || !item.invoiceId) {
@@ -62,8 +61,12 @@ export async function startPaymentChecker(bot: Telegraf) {
         const invoiceRecord = invoicesCache[item.invoiceId];
         if (invoiceRecord && invoiceRecord.expiresAt && nowSec > invoiceRecord.expiresAt) {
           console.log(`⏰ Invoice ${item.invoiceId} expired for user ${userId}, removing pending`);
-          await bot.telegram.sendMessage(userId, `Tu invoice para el prodillo de $${item.predict} expiró. Volvé a crear el prodillo con /prodillo ${item.predict}`).catch(console.error);
-          await bot.telegram.sendMessage(item.chatId, `La invoice de ${item.user} para $${item.predict} expiró y fue removida. El prodillo de $${item.predict} vuelve a estar disponible`).catch(console.error);
+          await bot.telegram.sendMessage(userId, `Tu invoice para el prodillo de $${item.predict} expiró.`).catch(console.error);
+          Object.keys(telegramChats)
+            .filter(idStr => Number(idStr) < 0)  // negative IDs are groups/channels
+            .forEach(chatIdStr => {
+              bot.telegram.sendMessage(Number(chatIdStr), `❌ [${item.user}](tg://user?id=${userId}) NO PAGO su prodillo pendiente.\nEl valor de $${item.predict} vuelve a estar disponible.`, { parse_mode: 'Markdown' }).catch(console.error);
+            });
           delete pending[userId];
           writeFileSync(PENDING_FILE, JSON.stringify(pending, null, 2));
           continue;
@@ -80,9 +83,20 @@ export async function startPaymentChecker(bot: Telegraf) {
             if (item.chatType !== 'private') {
               await bot.telegram.sendMessage(item.chatId, `¡Pago confirmado! Prodillo de [${item.user}](tg://user?id=${userId}) registrado: $${item.predict}`, { parse_mode: 'Markdown' }).catch(console.error);
             }
+
             await bot.telegram.sendMessage(userId, `¡Pago confirmado! Tu prodillo de $${item.predict} ha sido registrado.`).catch(console.error);
             
             delete pending[userId];
+
+            if (item.chatId > 0) {  // positive IDs are private chats
+              const announcement = `¡Prodillo CONFIRMADO!\n[${item.user}](tg://user?id=${userId}): $${item.predict}`;
+              Object.keys(telegramChats)
+                .filter(idStr => Number(idStr) < 0)  // negative IDs are groups/channels
+                .forEach(chatIdStr => {
+                  bot.telegram.sendMessage(Number(chatIdStr), announcement, { parse_mode: 'Markdown' }).catch(console.error);
+                });
+            }
+
             writeFileSync(PENDING_FILE, JSON.stringify(pending, null, 2));
           }
         } catch (error) {

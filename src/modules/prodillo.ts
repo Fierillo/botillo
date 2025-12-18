@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { getBitcoinPrices } from './bitcoinPrices';
+import { getBitcoinPrices, telegramChats } from './bitcoinPrices';
 import { deadline } from './deadline';
 import path from 'path';
 import { Telegraf, Context } from 'telegraf';
@@ -216,6 +216,15 @@ async function getProdillo(
       };
       writeFileSync(PENDING_FILE, JSON.stringify(pending, null, 2));
 
+      if (ctx.chat?.type === 'private') {
+        const announcement = `¡Nuevo prodillo! [${user}](tg://user?id=${userId}): $${predict} *PENDIENTE DE PAGO*`;
+        Object.keys(telegramChats)
+          .filter(idStr => Number(idStr) < 0) // negative IDs are groups/channels
+          .forEach(chatIdStr => {
+            bot.telegram.sendMessage(Number(chatIdStr), announcement, { parse_mode: 'Markdown' }).catch(console.error);
+        });
+      }
+
       const qrCode = await qrcode.toDataURL(bolt11);
       const qrBuffer = Buffer.from(qrCode.split(',')[1], 'base64');
 
@@ -223,15 +232,23 @@ async function getProdillo(
         `Necesitás pagar 21 sats para participar.\n\n` +
         `→ Escanea el QR o copia el invoice\n`;
 
-      await bot.telegram.sendPhoto(userId, { source: qrBuffer });
-      await bot.telegram.sendMessage(
-        userId,
-        `\`\`\`\n${bolt11}\n\`\`\``,
-        { parse_mode: 'Markdown' }
-      ).catch(err => console.error('Error sending DM:', err));
-      
-      await bot.telegram.sendMessage(userId, instruction, { parse_mode: 'Markdown' })
-        .catch(err => console.error('Error sending instruction DM:', err));
+      try {
+        await Promise.all([
+          bot.telegram.sendPhoto(userId, { source: qrBuffer }),
+          bot.telegram.sendMessage(userId, `${bolt11}`, { parse_mode: 'Markdown' }),
+          bot.telegram.sendMessage(userId, instruction, { parse_mode: 'Markdown' })
+        ]);
+      } catch (dmErr) {
+        console.error(`MP a ${user} falló (config. privacidad?):`, dmErr);
+        if (ctx.chat?.type !== 'private') {
+          ctx.reply(`¡No te pude mandar MP [${user}](tg://user?id=${userId})!\n\n¡Te mando el invoice por aca loko/a!`, { parse_mode: 'Markdown' });
+          await ctx.replyWithPhoto({ source: qrBuffer });
+          await ctx.reply(`${bolt11}`);
+          await ctx.reply(instruction, { parse_mode: 'Markdown' });
+        } else {
+          ctx.reply(`¡Error DM (bloqueaste bots privados)! Usa grupo o habilita privacidad.`);
+        }
+      }
 
       if (ctx.chat?.type !== 'private') {
         ctx.reply(`¡Prodillo de [${user}](tg://user?id=${userId}): $${predict} PENDIENTE DE PAGO, te mande MD loko/a\n\n` +

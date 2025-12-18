@@ -1,10 +1,5 @@
-// src/utils/gracefulShutdown.ts
 import { Telegraf } from 'telegraf'
 import { Client } from 'discord.js'
-import * as fs from 'fs'
-import * as path from 'path'
-
-const PRODILLOS_FILE = path.join(process.cwd(), 'src/db/prodillos.json')
 
 const DESPEDIDA = 'Botillo goes to sleep. Goodbye human!'
 
@@ -41,8 +36,22 @@ export const getGracefulShutdown = (
 
   process.removeAllListeners('SIGINT')
   process.removeAllListeners('SIGTERM')
-  process.once('SIGINT',  () => shutdown('SIGINT'))
-  process.once('SIGTERM', () => shutdown('SIGTERM'))
+  process.on('SIGINT', gracefulShutdown);
+  process.on('SIGTERM', gracefulShutdown);
+
+  async function gracefulShutdown(signal: string) {
+    console.log(`🛑 Shutdown started: ${signal}`);
+    try {
+      await bot.stop(signal);
+      console.log('Telegram bot stopped');
+      if (client.destroy) client.destroy();
+      console.log('Discord client closed');
+      console.log(DESPEDIDA);
+    } catch (err) {
+      console.error('Shutdown error:', err);
+    }
+    process.exit(0);
+  }
 
   process.on('uncaughtException', err => {
     console.error('💥 FATAL ERROR:', err)

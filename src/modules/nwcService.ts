@@ -54,44 +54,58 @@ function saveInvoicesToDisk(invoices: Map<string, PaymentRecord>) {
 let invoices = loadInvoicesFromDisk();
 
 export async function createInvoice(amountSats: number, userId, user: string, predict: string): Promise<Invoice> {
-  try {
-    const description = `prodillo-${user}-${predict}`;
-    const response = await nwcClient.makeInvoice({
-      amount: amountSats * 1000,
-      description,
-      expiry: 600, 
-    });
+  const description = `prodillo-${user}-${predict}`;
 
-    if (!response || !response.invoice || !response.payment_hash) {
-      throw new Error('No invoice or payment_hash returned from NWC makeInvoice');
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      console.log(`Creating invoice attempt ${attempt}/3...`);
+      
+      const response = await Promise.race([
+        nwcClient.makeInvoice({
+          amount: amountSats * 1000,
+          description,
+          expiry: 600,
+        }),
+        new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('NWC timeout 10s')), 10000)
+        )
+      ]);
+
+      if (!response || !response.invoice || !response.payment_hash) {
+        throw new Error('No invoice/payment_hash from NWC');
+      }
+
+      const bolt11 = response.invoice;
+      const paymentHash = response.payment_hash;
+      const invoiceId = `inv-${userId}-${Date.now()}`;
+      const createdAt = response.created_at || Math.floor(Date.now() / 1000);
+      const expiresAt = response.expires_at || (createdAt + 600);
+
+      invoices.set(invoiceId, {
+        invoiceId,
+        bolt11,
+        description,
+        paymentHash,
+        expiresAt,
+        amount: amountSats,
+      });
+      
+      saveInvoicesToDisk(invoices);
+
+      console.log(`✅ Invoice ${attempt === 1 ? '' : '(retry)'} ${bolt11.substring(0, 50)}... ID: ${invoiceId}`);
+      
+      return { bolt11, invoiceId };
+    } catch (error: any) {
+      console.error(`Attempt ${attempt} failed:`, error.message);
+      if (attempt === 3) throw error;
+      if (error.message.includes('Timeout') || error.message.includes('Nip47') || error.code === 'INTERNAL') {
+        const delay = 1000 * Math.pow(2, attempt - 1); // 1s, 2s, 4s
+        console.log(`Retry in ${delay}ms...`);
+        await new Promise(r => setTimeout(r, delay));
+      } else {
+        throw error;
+      }
     }
-
-    const bolt11 = response.invoice;
-    const paymentHash = response.payment_hash;
-    const invoiceId = `inv-${userId}-${Date.now()}`;
-    const createdAt = response.created_at || Math.floor(Date.now() / 1000);
-    const expiresAt = response.expires_at || (createdAt + 60 * 10); 
-
-    invoices.set(invoiceId, {
-      invoiceId,
-      bolt11,
-      description,
-      paymentHash,
-      expiresAt,
-      amount: amountSats,
-    });
-    
-    saveInvoicesToDisk(invoices);
-
-    console.log(`✅ Invoice created via NWC: ${bolt11.substring(0, 50)}...`);
-    console.log(`   Description: ${description}`);
-    console.log(`   Payment Hash: ${paymentHash}`);
-    console.log(`   Invoice ID: ${invoiceId}`);
-
-    return { bolt11, invoiceId };
-  } catch (error) {
-    console.error('Error creating invoice via NWC:', error);
-    throw error;
   }
 }
 
@@ -108,9 +122,6 @@ export async function checkPaymentStatus(invoiceId: string, user: string, userId
       return true;
     }
 
-    console.log(`Checking payment status for ${invoiceId}`);
-    console.log(`   Payment Hash: ${record.paymentHash}`);
-
     const nowSec = Math.floor(Date.now() / 1000);
     if (record.expiresAt && nowSec > record.expiresAt) {
       console.log(`⏰ Invoice ${invoiceId} expired at ${new Date(record.expiresAt * 1000).toISOString()}`);
@@ -126,8 +137,6 @@ export async function checkPaymentStatus(invoiceId: string, user: string, userId
       return false;
     }
 
-    console.log(`   Found ${response.transactions.length} transactions from NWC`);
-
     const transaction = response.transactions.find((t: any) => 
       t.payment_hash === record.paymentHash && t.state === 'settled'
     );
@@ -141,7 +150,6 @@ export async function checkPaymentStatus(invoiceId: string, user: string, userId
       return true;
     }
 
-    console.log(`⏳ No settled payment found yet for ${invoiceId}`);
     return false;
   } catch (error) {
     console.error('Error checking payment status via NWC:', error);
