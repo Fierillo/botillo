@@ -6,7 +6,7 @@ import path from 'path';
 import { Telegraf, Context } from 'telegraf';
 import qrcode from 'qrcode';
 import { createInvoice } from './nwcService';
-import { saveValues } from './utils';
+import { loadValues, saveValues } from './utils';
 import { TrofeillosChampion, TrofeillosDB, BitcoinPriceTracker, PendingProdillo } from './types';const PRODILLOS_FILE = path.join(process.cwd(), 'src/db/prodillos.json');
 
 const BITCOIN_FILE = path.join(process.cwd(), 'src/db/bitcoin.json');
@@ -22,10 +22,8 @@ let prodilloState = {
   isPredictionWindowOpen: true,
   hasRoundWinnerBeenAnnounced: false,
   forceWin: false,
-  isTest: false
+  isTest: false,
 };
-
-
 
 async function prodilloRoundManager(
   bot: Telegraf, 
@@ -57,6 +55,7 @@ async function prodilloRoundManager(
 
     if (isRoundOver || prodilloState.forceWin) {
       const currentProdillos = JSON.parse(await fs.readFile(PRODILLOS_FILE, 'utf-8'));
+      const treasury = Math.ceil(((await loadValues(PRODILLOS_FILE)).treasury || 0) * 0.79);
       
       const sortedProdillos = Object.entries(currentProdillos).sort(([,a]: any,[,b]: any) => 
         Math.abs(a.predict - bitcoinPrices.bitcoinMax) - Math.abs(b.predict - bitcoinPrices.bitcoinMax)
@@ -75,7 +74,7 @@ async function prodilloRoundManager(
       const [winnerId, winnerData] = sortedProdillos[0] as [string, { user: string, predict: number }];
       prodilloState.winnerName = winnerData.user;
       
-      const announcement = `<pre>🏁 ¡LA RONDA HA TERMINADO!\nMáximo de ₿ de esta ronda: $${bitcoinPrices.bitcoinMax}\n------------------------------------------\n${formattedList}\n\nCampeón/a: ${prodilloState.winnerName} 🏆</pre>`;
+      const announcement = `<pre>🏁 ¡LA RONDA HA TERMINADO!\nMáximo de ₿ de esta ronda: $${bitcoinPrices.bitcoinMax}\n------------------------------------------\n${formattedList}\n\nCampeón/a: ${prodilloState.winnerName} 🏆\nPremio: ${treasury} sats</pre>`;
       
       Object.keys(telegramChats).forEach(chatId => {
         bot.telegram.sendMessage(chatId, announcement, { parse_mode: 'HTML' });
@@ -236,14 +235,17 @@ async function getListilla(
     const prodillosFromFile = JSON.parse(await fs.readFile(PRODILLOS_FILE, 'utf-8'));
     const bitcoinData = JSON.parse(await fs.readFile(BITCOIN_FILE, 'utf-8'));
     const currentRoundMaxPrice = bitcoinData.bitcoinMax;
+    const treasury = Math.ceil(((await loadValues(PRODILLOS_FILE)).treasury || 0) * 0.79);
 
     if (Object.keys(prodillosFromFile).length === 0) {
       return ctx.reply('Todavía no hay prodillos en esta ronda. ¡Aprovecha con /prodillo <número>!');
     }
 
-    const rankedPredictions = (Object.values(prodillosFromFile) as Array<{ user: string; predict: number }>).map(({ user, predict }) => {
-      return { user, predict, diff: Math.abs(predict - currentRoundMaxPrice) };
-    }).sort((a, b) => a.diff - b.diff);
+    const rankedPredictions = (Object.values(prodillosFromFile) as Array<{ user: string; predict: number }>)
+      .filter(item => typeof item === 'object' && item.user && item.predict)
+      .map(({ user, predict }) => {
+        return { user, predict, diff: Math.abs(predict - currentRoundMaxPrice) };
+      }).sort((a, b) => a.diff - b.diff);
 
     const leaderDifference = rankedPredictions[0].diff;
 
@@ -272,6 +274,7 @@ async function getListilla(
 
     const fullMessage = `<pre><b>LISTA DE PRODILLOS:</b>\n\n` +
                         `${roundMaxPriceInfo}\n` +
+                        `Pozo actual: ${treasury} sats\n` +
                         `-----------------------------------------------------\n` +
                         `${formattedList}\n` +
                         `${deadlineInfo}</pre>`;

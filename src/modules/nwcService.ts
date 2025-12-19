@@ -13,6 +13,7 @@ if (!process.env.NWC_CONNECTION_STRING) {
 
 let nwcClient: NWCClient;
 const INVOICES_CACHE_FILE = path.join(process.cwd(), 'src/db/invoicesCache.json');
+const PRODILLOS_FILE = path.join(process.cwd(), 'src/db/prodillos.json');
 
 
 
@@ -111,6 +112,12 @@ export async function checkPaymentStatus(invoiceId: string, user: string, userId
       console.log(`   Settled at: ${new Date(transaction.settled_at * 1000).toISOString()}`);
       record.paidAt = Date.now();
       await saveValues(INVOICES_CACHE_FILE, 'invoices', Object.fromEntries(invoices));
+      
+      const sumTreasury = await loadValues(PRODILLOS_FILE);
+      sumTreasury.treasury = (sumTreasury.treasury || 0) + (+transaction.amount / 1000);
+      await saveValues(PRODILLOS_FILE, 'treasury', sumTreasury.treasury);
+      console.log(`   Add ${transaction.amount / 1000} sats to treasury`);
+      console.log(`   Total treasury: ${sumTreasury.treasury} sats`);
       return true;
     }
 
