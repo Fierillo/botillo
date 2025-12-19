@@ -6,9 +6,11 @@ import { message } from 'telegraf/filters';
 const schedule = require('node-schedule');
 const fs = require('fs');
 const path = require('path');
-import { getListilla, getProdillo, getTrofeillos, prodilloInterval, saveValues } from './src/modules/prodillo';
+import { getListilla, getProdillo, getTrofeillos, prodilloInterval } from './src/modules/prodillo';
+import { saveValues } from './src/modules/utils';
 import { startPaymentChecker } from './src/modules/paymentChecker';
-import { bitcoinPrices, getBitcoinPrices, loadValues, trackBitcoinPrice, telegramChats, discordChannels } from './src/modules/bitcoinPrices';
+import { bitcoinPrices, getBitcoinPrices, trackBitcoinPrice, telegramChats, discordChannels } from './src/modules/bitcoinPrices';
+import { loadValues } from './src/modules/utils';
 import { Message } from "telegraf/typings/core/types/typegram";
 import { getGracefulShutdown } from "./src/modules/gracefulShutdown";
 //import { getTest } from "./src/modules/test";
@@ -106,7 +108,28 @@ client.on('ready', async () => {
   });
   
   await loadProdillos();
-  await loadValues();
+  if (!fs.existsSync(BITCOIN_FILE)) {
+    fs.writeFileSync(BITCOIN_FILE, JSON.stringify(bitcoinPrices, null, 2));
+  }
+  try {
+    const data = await loadValues(BITCOIN_FILE);
+    if (!data.lastReportedMax) {data.lastReportedMax = 0}
+    if (!data.lastReportedMin) {data.lastReportedMin = Infinity}
+    if (!data.bitcoinMax) {data.bitcoinMax = 0}
+    if (!data.bitcoinATH) {data.bitcoinATH = 0}
+    if (!data.bitcoinMaxBlock) {data.bitcoinMaxBlock = 0}
+    await fs.promises.writeFile(BITCOIN_FILE, JSON.stringify(data, null, 2));
+    Object.assign(bitcoinPrices, {
+      lastReportedMax: data.lastReportedMax,
+      lastReportedMin: data.lastReportedMin,
+      bitcoinMax: data.bitcoinMax,
+      bitcoinATH: data.bitcoinATH,
+      bitcoinMaxBlock: data.bitcoinMaxBlock,
+    })
+    console.log('Initial values with bitcoin.json updated successfully:', data);
+  } catch (e) {
+    throw new Error(`CRITICAL ERROR: Couldn't read bitcoin.json file`);
+  }
   trackBitcoinPrice(bot);
   setTimeout(() => prodilloInterval(bot, telegramChats, prodillos, bitcoinPrices), 420);
   setTimeout(seViene, Math.random() * ((69 - 1)*3600*1000) + 1 * 3600*1000);

@@ -36,9 +36,9 @@ export async function startPaymentChecker(bot: Telegraf) {
       
       const pending: Record<string, any> = JSON.parse(readFileSync(PENDING_FILE, 'utf-8'));
       const invoicesCache: Record<string, any> = existsSync(INVOICES_CACHE_FILE)
-        ? JSON.parse(readFileSync(INVOICES_CACHE_FILE, 'utf-8'))
+        ? JSON.parse(readFileSync(INVOICES_CACHE_FILE, 'utf-8')).invoices || {}
         : {};
-      
+
       const keys = Object.keys(pending);
       
       if (keys.length === 0) return;

@@ -5,25 +5,14 @@ import { deadline } from './deadline';
 import path from 'path';
 import { Telegraf, Context } from 'telegraf';
 import qrcode from 'qrcode';
-import { createInvoice } from './nwcService';const PRODILLOS_FILE = path.join(process.cwd(), 'src/db/prodillos.json');
+import { createInvoice } from './nwcService';
+import { saveValues } from './utils';
+import { TrofeillosChampion, TrofeillosDB, BitcoinPriceTracker, PendingProdillo } from './types';const PRODILLOS_FILE = path.join(process.cwd(), 'src/db/prodillos.json');
 
 const BITCOIN_FILE = path.join(process.cwd(), 'src/db/bitcoin.json');
 const TROFEILLOS_FILE = path.join(process.cwd(), 'src/db/trofeillos.json');
 const PENDING_FILE = path.join(process.cwd(), 'src/db/pendingProdillos.json');
 const PRODILLO_ROUND_CHECK_INTERVAL = 1000 * 69;
-
-export interface TrofeillosChampion {
-  champion: string;
-  "trofeillos amateur"?: string[];
-  "trofeillos profesionales"?: string[];
-}
-
-export interface TrofeillosDB {
-  currentChampion?: string | null;
-  currentChampionId?: string | null;
-
-  [userId: string]: TrofeillosChampion | string | null | undefined;
-}
 
 export let trofeillos = {} as TrofeillosDB;
 const TROPHY_ICON = '🏆';
@@ -36,33 +25,7 @@ let prodilloState = {
   isTest: false
 };
 
-type BitcoinPriceTracker = {
-  bitcoinATH: number;
-  lastReportedMax: number;
-  lastReportedMin: number;
-  bitcoinMax: number;
-  bitcoinMaxBlock: number;
-};
 
-type PendingProdillo = {
-  user: string;
-  predict: number;
-  chatId: number;
-  invoiceId: string;
-  chatType: string;
-};
-
-async function saveValues(filePath: string, key: string, value: number) {
-  try {
-    const fileContent = await fs.readFile(filePath, 'utf8');
-    const data = JSON.parse(fileContent);
-    data[key] = value;
-    await fs.writeFile(filePath, JSON.stringify(data, null, 2));
-    console.log(`Updated ${key} to ${value} in ${path.basename(filePath)}`);
-  } catch (err) {
-    console.error(`Failed to save ${key} in ${path.basename(filePath)}:`, err);
-  }
-}
 
 async function prodilloRoundManager(
   bot: Telegraf, 
@@ -389,11 +352,10 @@ async function getTrofeillos(ctx: Context) {
   }
 }
 
-export { 
-  saveValues, 
-  prodilloRoundManager as prodilloInterval, 
-  getProdillo, 
-  getListilla, 
-  getTrofeillos, 
-  prodilloState 
+export {
+  prodilloRoundManager as prodilloInterval,
+  getProdillo,
+  getListilla,
+  getTrofeillos,
+  prodilloState
 };

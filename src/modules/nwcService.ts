@@ -1,8 +1,9 @@
 import "websocket-polyfill";
 import { NWCClient } from '@getalby/sdk';
 import { config } from 'dotenv';
-import { readFileSync, writeFileSync, existsSync } from 'fs';
 import path from 'path';
+import { saveValues, loadValues } from './utils';
+import { Invoice, PaymentRecord } from './types';
 
 config();
 
@@ -13,45 +14,9 @@ if (!process.env.NWC_CONNECTION_STRING) {
 let nwcClient: NWCClient;
 const INVOICES_CACHE_FILE = path.join(process.cwd(), 'src/db/invoicesCache.json');
 
-export interface Invoice {
-  bolt11: string;
-  invoiceId: string;
-}
 
-export interface PaymentRecord {
-  invoiceId: string;
-  bolt11: string;
-  description: string;
-  paymentHash: string;
-  paidAt?: number;
-  expiresAt?: number;
-  amount: number;
-}
 
-function loadInvoicesFromDisk(): Map<string, PaymentRecord> {
-  const map = new Map<string, PaymentRecord>();
-  if (existsSync(INVOICES_CACHE_FILE)) {
-    try {
-      const data = JSON.parse(readFileSync(INVOICES_CACHE_FILE, 'utf-8'));
-      Object.entries(data).forEach(([key, value]: [string, any]) => {
-        map.set(key, value);
-      });
-    } catch (error) {
-      console.error('Error loading invoices cache:', error);
-    }
-  }
-  return map;
-}
-
-function saveInvoicesToDisk(invoices: Map<string, PaymentRecord>) {
-  const obj: Record<string, PaymentRecord> = {};
-  invoices.forEach((value, key) => {
-    obj[key] = value;
-  });
-  writeFileSync(INVOICES_CACHE_FILE, JSON.stringify(obj, null, 2));
-}
-
-let invoices = loadInvoicesFromDisk();
+let invoices: Map<string, PaymentRecord>;
 
 export async function createInvoice(amountSats: number, userId, user: string, predict: string): Promise<Invoice> {
   const description = `prodillo-${user}-${predict}`;
@@ -89,9 +54,8 @@ export async function createInvoice(amountSats: number, userId, user: string, pr
         expiresAt,
         amount: amountSats,
       });
-      
-      saveInvoicesToDisk(invoices);
 
+      await saveValues(INVOICES_CACHE_FILE, 'invoices', Object.fromEntries(invoices));
       console.log(`✅ Invoice ${attempt === 1 ? '' : '(retry)'} ${bolt11.substring(0, 50)}... ID: ${invoiceId}`);
       
       return { bolt11, invoiceId };
@@ -146,7 +110,7 @@ export async function checkPaymentStatus(invoiceId: string, user: string, userId
       console.log(`   Amount: ${transaction.amount} msats (${transaction.amount / 1000} sats)`);
       console.log(`   Settled at: ${new Date(transaction.settled_at * 1000).toISOString()}`);
       record.paidAt = Date.now();
-      saveInvoicesToDisk(invoices);
+      await saveValues(INVOICES_CACHE_FILE, 'invoices', Object.fromEntries(invoices));
       return true;
     }
 
@@ -166,8 +130,10 @@ export async function initializeNWC(): Promise<void> {
     
     const publicKey = nwcClient.publicKey;
     console.log('✅ NWC connection established. Public key:', publicKey);
-    
-    invoices = loadInvoicesFromDisk();
+
+    const data = await loadValues(INVOICES_CACHE_FILE);
+    const invoicesData = data.invoices || {};
+    invoices = new Map(Object.entries(invoicesData));
     console.log(`✅ Loaded ${invoices.size} invoices from cache`);
   } catch (error) {
     console.error('Error initializing NWC:', error);
