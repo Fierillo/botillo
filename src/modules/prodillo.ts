@@ -197,9 +197,9 @@ async function getProdillo(
 
       try {
         await Promise.all([
-          bot.telegram.sendPhoto(userId, { source: qrBuffer }),
-          bot.telegram.sendMessage(userId, `${bolt11}`, { parse_mode: 'Markdown' }),
-          bot.telegram.sendMessage(userId, instruction, { parse_mode: 'Markdown' })
+          await bot.telegram.sendPhoto(userId, { source: qrBuffer }),
+          await bot.telegram.sendMessage(userId, `${bolt11}`, { parse_mode: 'Markdown' }),
+          await bot.telegram.sendMessage(userId, instruction, { parse_mode: 'Markdown' })
         ]);
       } catch (dmErr) {
         console.error(`MP a ${user} falló (config. privacidad?):`, dmErr);
