@@ -214,6 +214,15 @@ bot.command(['hilo', 'hilo@botillo21_bot'], async (ctx) => {
 /*bot.command('test', (ctx) => {
   ensureChatIsSaved(ctx);
   getTest(ctx);
+});
+
+bot.command('testreminder', async (ctx) => {
+  ensureChatIsSaved(ctx);
+  Object.keys(telegramChats).forEach(chatId => {
+    ctx.reply('⛏️ ¡121 bloquitos para el cierre loko/a!\n\nDale que todavía estas a tiempo con /prodillo <número>');
+    ctx.reply('🚨 ¡21 bloquitos loko/a!\n\nÚltima chance: /prodillo <número>');
+  });
+  ctx.reply('Recordatorios enviados (test)');
 });*/
 
 const welcome = (ctx: Context) => {

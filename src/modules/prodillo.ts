@@ -7,14 +7,15 @@ import { Telegraf, Context } from 'telegraf';
 import qrcode from 'qrcode';
 import { createInvoice } from './nwcService';
 import { loadValues, saveValues } from './utils';
-import { TrofeillosChampion, TrofeillosDB, BitcoinPriceTracker, PendingProdillo } from './types';const PRODILLOS_FILE = path.join(process.cwd(), 'src/db/prodillos.json');
+import { TrofeillosChampion, TrofeillosDB, BitcoinPriceTracker, PendingProdillo } from './types';
+import { generateWinnerImage } from './imageGenerator';const PRODILLOS_FILE = path.join(process.cwd(), 'src/db/prodillos.json');
 
 const BITCOIN_FILE = path.join(process.cwd(), 'src/db/bitcoin.json');
 const TROFEILLOS_FILE = path.join(process.cwd(), 'src/db/trofeillos.json');
 const PENDING_FILE = path.join(process.cwd(), 'src/db/pendingProdillos.json');
 const PRODILLO_ROUND_CHECK_INTERVAL = 1000 * 69;
 
-export let trofeillos = {} as TrofeillosDB;
+let trofeillos = {} as TrofeillosDB;
 const TROPHY_ICON = '🏆';
 
 let prodilloState = {
@@ -23,6 +24,8 @@ let prodilloState = {
   hasRoundWinnerBeenAnnounced: false,
   forceWin: false,
   isTest: false,
+  reminder121Sent: false,
+  reminder21Sent: false,
 };
 
 async function prodilloRoundManager(
@@ -39,6 +42,25 @@ async function prodilloRoundManager(
     bitcoinPrices.bitcoinMax = bitcoinData.bitcoinMax;
   
     prodilloState.isPredictionWindowOpen = (prodilleableDeadline > 0);
+    
+    if (prodilleableDeadline === 121 && !prodilloState.reminder121Sent) {
+      Object.keys(telegramChats).forEach(chatId => {
+        bot.telegram.sendMessage(chatId, '⛏️ ¡121 bloquitos para el cierre!\n\nDale que todavía estas a tiempo con /prodillo <número>').catch(console.error);
+      });
+      prodilloState.reminder121Sent = true;
+    }
+    
+    if (prodilleableDeadline === 21 && !prodilloState.reminder21Sent) {
+      Object.keys(telegramChats).forEach(chatId => {
+        bot.telegram.sendMessage(chatId, '🚨 ¡21 bloquecitos loko/a!\n\nÚltima chance señor/a: /prodillo <número>').catch(console.error);
+      });
+      prodilloState.reminder21Sent = true;
+    }
+    
+    if (prodilleableDeadline > 121) {
+      prodilloState.reminder121Sent = false;
+      prodilloState.reminder21Sent = false;
+    }
     
     if (prodilloState.hasRoundWinnerBeenAnnounced && winnerDeadline > 0 && winnerDeadline < 210) {
       prodilloState.hasRoundWinnerBeenAnnounced = false;
@@ -81,6 +103,18 @@ async function prodilloRoundManager(
       });
 
       try {
+        const winnerImage = await generateWinnerImage(prodilloState.winnerName);
+        const imagePath = path.join(process.cwd(), 'public/winner.jpg');
+        require('fs').writeFileSync(imagePath, winnerImage);
+        
+        Object.keys(telegramChats).forEach(chatId => {
+          bot.telegram.sendPhoto(chatId, { source: winnerImage } as any).catch(console.error);
+        });
+      } catch (imgError) {
+        console.error('Error generating winner image:', imgError);
+      }
+
+      try {
         const data = readFileSync(TROFEILLOS_FILE, 'utf-8');
         trofeillos = JSON.parse(data);
       } catch (error) {
@@ -117,6 +151,8 @@ async function prodilloRoundManager(
       await fs.writeFile(PRODILLOS_FILE, JSON.stringify(halFinneyPrediction, null, 2));
       
       prodilloState.hasRoundWinnerBeenAnnounced = true;
+      prodilloState.reminder121Sent = false;
+      prodilloState.reminder21Sent = false;
       console.log(`Round finished! Winner: ${prodilloState.winnerName} [${winnerId}]`);
     }
 
