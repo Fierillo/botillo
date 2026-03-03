@@ -46,6 +46,15 @@ function ensureChatIsSaved(ctx: Context) {
 async function launchBotWithRetry(bot: Telegraf, retries = 5, delay = 10000) {
   for (let i = 0; i < retries; i++) {
     try {
+      await bot.telegram.setMyCommands([
+        { command: 'precio', description: 'Ver precio actual de ₿' },
+        { command: 'hilo', description: 'Ver máximo y mínimo del día' },
+        { command: 'prodillo', description: 'Inscribir un prodillo' },
+        { command: 'listilla', description: 'Ver prodillos de la ronda' },
+        { command: 'trofeillos', description: 'Ver historial de campeones' },
+        { command: 'plantar', description: 'Configurar canal para mensajes automáticos (admin)' },
+        { command: 'donacioncilla', description: 'Donar sats al fondo de premios' },
+      ]);
       await bot.launch();
       console.log('Botillo is alive in Telegram!');
       return;
