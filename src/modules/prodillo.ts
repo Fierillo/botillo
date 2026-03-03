@@ -8,7 +8,10 @@ import qrcode from 'qrcode';
 import { createInvoice } from './nwcService';
 import { loadValues, saveValues } from './utils';
 import { TrofeillosChampion, TrofeillosDB, BitcoinPriceTracker, PendingProdillo } from './types';
-import { generateWinnerImage } from './imageGenerator';const PRODILLOS_FILE = path.join(process.cwd(), 'src/db/prodillos.json');
+import { generateWinnerImage } from './imageGenerator';
+const { sendToTelegram, sendPhotoToAllTelegram, broadcastNewProdillo } = require('./notifier');
+
+const PRODILLOS_FILE = path.join(process.cwd(), 'src/db/prodillos.json');
 
 const BITCOIN_FILE = path.join(process.cwd(), 'src/db/bitcoin.json');
 const TROFEILLOS_FILE = path.join(process.cwd(), 'src/db/trofeillos.json');
@@ -44,16 +47,12 @@ async function prodilloRoundManager(
     prodilloState.isPredictionWindowOpen = (prodilleableDeadline > 0);
     
     if (prodilleableDeadline === 121 && !prodilloState.reminder121Sent) {
-      Object.keys(telegramChats).forEach(chatId => {
-        bot.telegram.sendMessage(chatId, '⛏️ ¡121 bloquitos para el cierre!\n\nDale que todavía estas a tiempo con /prodillo <número>').catch(console.error);
-      });
+      sendToTelegram('⛏️ ¡121 bloquitos para el cierre!\n\nDale que todavía estas a tiempo con /prodillo <número>');
       prodilloState.reminder121Sent = true;
     }
     
     if (prodilleableDeadline === 21 && !prodilloState.reminder21Sent) {
-      Object.keys(telegramChats).forEach(chatId => {
-        bot.telegram.sendMessage(chatId, '🚨 ¡21 bloquecitos loko/a!\n\nÚltima chance señor/a: /prodillo <número>').catch(console.error);
-      });
+      sendToTelegram('🚨 ¡21 bloquecitos loko/a!\n\nÚltima chance señor/a: /prodillo <número>');
       prodilloState.reminder21Sent = true;
     }
     
@@ -98,18 +97,11 @@ async function prodilloRoundManager(
       
       const announcement = `<pre>🏁 ¡LA RONDA HA TERMINADO!\nMáximo de ₿ de esta ronda: $${bitcoinPrices.bitcoinMax}\n------------------------------------------\n${formattedList}\n\nCampeón/a: ${prodilloState.winnerName} 🏆\nPremio: ${treasury} sats</pre>`;
       
-      Object.keys(telegramChats).forEach(chatId => {
-        bot.telegram.sendMessage(chatId, announcement, { parse_mode: 'HTML' });
-      });
+      sendToTelegram(announcement, { parse_mode: 'HTML' });
 
       try {
         const winnerImage = await generateWinnerImage(prodilloState.winnerName);
-        const imagePath = path.join(process.cwd(), 'public/winner.jpg');
-        require('fs').writeFileSync(imagePath, winnerImage);
-        
-        Object.keys(telegramChats).forEach(chatId => {
-          bot.telegram.sendPhoto(chatId, { source: winnerImage } as any).catch(console.error);
-        });
+        sendPhotoToAllTelegram(winnerImage, announcement);
       } catch (imgError) {
         console.error('Error generating winner image:', imgError);
       }
@@ -190,6 +182,16 @@ async function getProdillo(
     const bitcoinData = JSON.parse(await fs.readFile(BITCOIN_FILE, 'utf-8'));
     bitcoinPrices.bitcoinMax = bitcoinData.bitcoinMax;
 
+    const existingPending = pendingProdillos[userId];
+    const existingConfirmed = currentProdillos[userId];
+
+    if (existingPending || existingConfirmed) {
+      const oldPredict = existingPending?.predict || existingConfirmed?.predict;
+      if (predict === oldPredict) {
+        return ctx.reply(`Ya tenés un prodillo de $${predict} ${existingPending ? 'pendiente' : 'confirmado'}. Elegí otro valor.`);
+      }
+    }
+
     if (Object.values(currentProdillos).some((p: any) => p.predict === predict) ||
         Object.values(pendingProdillos).some((p: any) => p.predict === predict)) {
       return ctx.reply(`Ese prodillo ya está tomado (pendiente o pagado). ¡Elegí otro valor, loko/a!`);
@@ -197,6 +199,15 @@ async function getProdillo(
 
     if (predict < bitcoinPrices.bitcoinMax) {
       return ctx.reply(`Tenes que ingresar un valor mayor a $${bitcoinPrices.bitcoinMax} para tener chance.\n¡Mentalidad de tiburón, loko/a!`);
+    }
+
+    if (existingPending) {
+      delete pendingProdillos[userId];
+      writeFileSync(PENDING_FILE, JSON.stringify(pendingProdillos, null, 2));
+    }
+    if (existingConfirmed) {
+      delete currentProdillos[userId];
+      await fs.writeFile(PRODILLOS_FILE, JSON.stringify(currentProdillos, null, 2));
     }
 
     try {
@@ -214,45 +225,32 @@ async function getProdillo(
       };
       writeFileSync(PENDING_FILE, JSON.stringify(pending, null, 2));
 
-      if (ctx.chat?.type === 'private') {
-        const announcement = `¡Nuevo prodillo! [${user}](tg://user?id=${userId}): $${predict} *PENDIENTE DE PAGO*`;
-        Object.keys(telegramChats)
-          .filter(idStr => Number(idStr) < 0) // negative IDs are groups/channels
-          .forEach(chatIdStr => {
-            bot.telegram.sendMessage(Number(chatIdStr), announcement, { parse_mode: 'Markdown' }).catch(console.error);
-        });
+      if (prodilloState.isPredictionWindowOpen || prodilloState.isTest) {
+        console.log(`[PRODILLO] Ventana ABIERTA o TEST, anunciando prodillo de ${user}: $${predict}`);
+        await broadcastNewProdillo(user || 'Anónimo', predict, userId);
+      } else {
+        console.log(`[PRODILLO] Ventana CERRADA, no se anuncia prodillo de ${user}: $${predict}`);
       }
 
       const qrCode = await qrcode.toDataURL(bolt11);
       const qrBuffer = Buffer.from(qrCode.split(',')[1], 'base64');
 
       const instruction = `*¡Prodillo de $${predict} pendiente de pago!*\n\n` +
-        `Necesitás pagar 21 sats para participar.\n\n` +
-        `→ Escanea el QR o copia el invoice\n`;
+        `Pagá 21 sats en 10 minutos.\n\n` +
+        `QR o invoice:\n`;
 
       try {
-        await Promise.all([
-          await bot.telegram.sendPhoto(userId, { source: qrBuffer }),
-          await bot.telegram.sendMessage(userId, `${bolt11}`, { parse_mode: 'Markdown' }),
-          await bot.telegram.sendMessage(userId, instruction, { parse_mode: 'Markdown' })
-        ]);
+        await bot.telegram.sendPhoto(userId, { source: qrBuffer });
+        await bot.telegram.sendMessage(userId, `${bolt11}\n\n${instruction}`, { parse_mode: 'Markdown' });
       } catch (dmErr) {
-        console.error(`MP a ${user} falló (config. privacidad?):`, dmErr);
-        if (ctx.chat?.type !== 'private') {
-          ctx.reply(`¡No te pude mandar MP [${user}](tg://user?id=${userId})!\n\n¡Te mando el invoice por aca loko/a!`, { parse_mode: 'Markdown' });
-          await ctx.replyWithPhoto({ source: qrBuffer });
-          await ctx.reply(`${bolt11}`);
-          await ctx.reply(instruction, { parse_mode: 'Markdown' });
-        } else {
-          ctx.reply(`¡Error DM (bloqueaste bots privados)! Usa grupo o habilita privacidad.`);
-        }
+        console.error(`MP a ${user} falló:`, dmErr);
+        await ctx.replyWithPhoto({ source: qrBuffer });
+        await ctx.reply(`${bolt11}\n\n${instruction}`, { parse_mode: 'Markdown' });
+        
+        await ctx.reply(`⚠️ Che *${user}*, intenté mandarte el invoice para pagar pero no tenés habilitado los mensajes, ¡media pila, habilita los mensajes o escribime vos por privado!`, { parse_mode: 'MarkdownV2' });
       }
 
-      if (ctx.chat?.type !== 'private') {
-        ctx.reply(`¡Prodillo de [${user}](tg://user?id=${userId}): $${predict} PENDIENTE DE PAGO, te mande MD loko/a\n\n` +
-          `¡apúrate a pagarlo, tenes 10 minutos!`, { parse_mode: 'Markdown' });
-      }
-      console.log(`Pending prodillo of ${user} [${userId}]: ${predict}`);
+      console.log(`Pending prodillo: ${user} [${userId}]: $${predict}`);
 
     } catch (error: any) {
       console.error('Error en getProdillo:', error);

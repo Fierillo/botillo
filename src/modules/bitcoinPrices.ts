@@ -1,8 +1,10 @@
 import axios from "axios";
 import { saveValues, loadValues } from "./utils";
 import { Telegraf } from "telegraf";
-import { TextChannel } from "discord.js";
+import { TextChannel, Client } from "discord.js";
 import path from "path";
+const { getAutoChannelConfig, getAutoChannel } = require('./config');
+const { sendToAll } = require('./notifier');
 const fs = require('fs');
 
 const TIME_INTERVAL = 1000 * 420;
@@ -86,18 +88,8 @@ async function trackBitcoinPrice(bot: Telegraf) {
 }
 
 async function notifyAll(bot: Telegraf, message: string) {
-  for (const chatId of Object.keys(telegramChats)) {
-    if (await hasSendPermission(chatId, bot)) {
-      await bot.telegram.sendMessage(Number(chatId), message).catch(err =>
-        console.error(`Fallo al enviar a Telegram ${chatId}:`, err.message)
-      );
-    }
-  }
-  for (const channel of Object.values(discordChannels)) {
-    await channel.send(message).catch(err =>
-      console.error(`Fallo al enviar a Discord ${channel.id}:`, err.message)
-    );
-  }
+  const { sendToAll } = require('./autoChannel');
+  await sendToAll(message);
 }
 
 async function hasSendPermission(chatId: string, bot: Telegraf): Promise<boolean> {

@@ -3,17 +3,18 @@ import { TextChannel } from "discord.js";
 import { config } from "dotenv";
 import { Telegraf, Context } from 'telegraf'; 
 import { message } from 'telegraf/filters'; 
-const schedule = require('node-schedule');
 const fs = require('fs');
 const path = require('path');
 import { getListilla, getProdillo, getTrofeillos, prodilloInterval } from './src/modules/prodillo';
-import { saveValues } from './src/modules/utils';
+import { saveValues, loadValues } from './src/modules/utils';
 import { startPaymentChecker } from './src/modules/paymentChecker';
+import { startScheduler } from './src/modules/scheduler';
 import { bitcoinPrices, getBitcoinPrices, trackBitcoinPrice, telegramChats, discordChannels } from './src/modules/bitcoinPrices';
-import { loadValues } from './src/modules/utils';
 import { Message } from "telegraf/typings/core/types/typegram";
 import { getGracefulShutdown } from "./src/modules/gracefulShutdown";
-//import { getTest } from "./src/modules/test";
+const { loadAutoChannelConfig, saveAutoChannelConfig, initAutoChannel } = require("./src/modules/config");
+const { sendToAll } = require("./src/modules/notifier");
+import { getTest } from "./src/modules/test";
 
 config();
 
@@ -89,6 +90,7 @@ function loadProdillos() {
 
 // STARTING EVENT
 client.on('ready', async () => {
+  initAutoChannel(bot, client);
   try {
     const commitMessage = execSync('git log -1 --pretty=%B').toString().trim();
     console.log(commitMessage);
@@ -108,6 +110,7 @@ client.on('ready', async () => {
   });
   
   await loadProdillos();
+  loadAutoChannelConfig();
   if (!fs.existsSync(BITCOIN_FILE)) {
     fs.writeFileSync(BITCOIN_FILE, JSON.stringify(bitcoinPrices, null, 2));
   }
@@ -144,48 +147,33 @@ function seViene() {
   : luckyNumber <= 0.8 ? 'SE VIENE' 
   : '🔥 SE RECONTRA VIENE';
   
-  Object.keys(telegramChats).forEach(chatId => 
-    bot.telegram.sendMessage(Number(chatId), selectedMsg!)); // <--- CAMBIO
-  Object.values(discordChannels).forEach(channel => 
-    channel.send(selectedMsg!));
+  sendToAll(selectedMsg);
   setTimeout(seViene, Math.random() * ((69 - 1)*3600*1000) + 1 * 3600*1000);
 };
 
-schedule.scheduleJob('0 00 * * *', async () => {
-  const { max, min } = await getBitcoinPrices();
-  
-  bitcoinPrices.lastReportedMax = max;
-  bitcoinPrices.lastReportedMin = min;
-  
-  const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf8'));
-  data.lastReportedMax = bitcoinPrices.lastReportedMax;
-  data.lastReportedMin = bitcoinPrices.lastReportedMin;
-  await saveValues(BITCOIN_FILE, 'lastReportedMax', bitcoinPrices.lastReportedMax);
-  await saveValues(BITCOIN_FILE, 'lastReportedMin', bitcoinPrices.lastReportedMin);
-  
-  for (const channelId in discordChannels) {
-    discordChannels[channelId].send(`¡GN humanos!\n🦁 El máximo de ₿ del dia fue: $${max}\n🐻 El mínimo fue: $${min}\n🔺 La variación del dia fue: $${max-min} (${(100*(max/min)-100).toFixed(1)}%)`);
-  }
-  for (const chatId in telegramChats) {
-    bot.telegram.sendMessage(chatId, `¡GN humanos!\n🦁 El máximo de ₿ del dia fue: $${max}\n🐻 El mínimo fue: $${min}\n🔺 La variación del dia fue: $${max-min} (${(100*(max/min)-100).toFixed(1)}%)`); // <--- CAMBIO
-  }
-});
+startScheduler();
 
-client.on('messageCreate', async (message: { content: string; channel: TextChannel; }) => {
+client.on('messageCreate', async (message: { content: string; channel: TextChannel; channelId: string; guild: any; }) => {
   if (message.content === '/precio') {
     const { price } = await getBitcoinPrices();
     (message.channel as TextChannel).send(`precio de ₿: $${price} (${(100*(price/bitcoinPrices.bitcoinATH)).toFixed(1)}% del ATH)`);
   } else if (message.content === '/hilo') {
     const { max, min } = await getBitcoinPrices();
     (message.channel as TextChannel).send(`🦁 máximo diario de ₿: $${max} (${(100*(max/bitcoinPrices.bitcoinATH)).toFixed(1)}% del ATH)\n🐻 mínimo diario de ₿: $${min}\n🔺 Volatilidad diaria: $${max-min} (${(100*(max/min)-100).toFixed(1)}%)\n🚀 ATH de ₿: $${bitcoinPrices.bitcoinATH}`);
-}});
-
-schedule.scheduleJob('0 11 * * *', () => { 
-  for (const channelId in discordChannels) {
-    discordChannels[channelId].send(`GM humanos 🧉`);
-  }
-  for (const chatId in telegramChats) {
-    bot.telegram.sendMessage(chatId, `GM humanos 🧉`); // <--- CAMBIO
+  } else if (message.content === '/plantar') {
+    if (!message.guild) {
+      message.channel.send('❌ Este comando solo funciona en un servidor, no en DM.');
+      return;
+    }
+    const msg = message as any;
+    const member = message.guild.members.cache.get(msg.author.id);
+    if (!member?.permissions.has('Administrator')) {
+      message.channel.send('❌ Solo administradores pueden usar este comando.');
+      return;
+    }
+    const { setDiscordChannel } = require('./src/modules/notifier');
+    setDiscordChannel(message.guild.id, message.channelId);
+    message.channel.send(`✅ Canal plantado para mensajes automáticos en este servidor: <#${message.channelId}>`);
   }
 });
 
@@ -211,7 +199,7 @@ bot.command(['hilo', 'hilo@botillo21_bot'], async (ctx) => {
   }
 });
 
-/*bot.command('test', (ctx) => {
+bot.command('test', (ctx) => {
   ensureChatIsSaved(ctx);
   getTest(ctx);
 });
@@ -223,7 +211,7 @@ bot.command('testreminder', async (ctx) => {
     ctx.reply('🚨 ¡21 bloquitos loko/a!\n\nÚltima chance: /prodillo <número>');
   });
   ctx.reply('Recordatorios enviados (test)');
-});*/
+});
 
 const welcome = (ctx: Context) => {
   const name = ctx.chat?.type === 'private' ? ctx.chat.first_name : ctx.chat?.title;
@@ -260,6 +248,33 @@ bot.command(['donacioncilla', 'donacioncilla@botillo21_bot'], async (ctx) => {
     console.error(`❌ error when ${user} [${userId}] tried to access donation`, error);
     await ctx.reply('❌ Lo siento loko, hubo un error al obtener la dirección. Proba devuelta');
   }
+});
+
+bot.command(['plantar', 'plantar@botillo21_bot'], async (ctx) => {
+  ensureChatIsSaved(ctx);
+  
+  if (ctx.chat.type === 'private') {
+    await ctx.reply('❌ Este comando solo funciona en grupos, no en chat privado.');
+    return;
+  }
+  
+  const botMember = await ctx.getChatMember(ctx.botInfo.id);
+  if (botMember.status !== 'administrator' && botMember.status !== 'creator') {
+    await ctx.reply('❌ Necesito ser administrador para usar topics.');
+    return;
+  }
+  
+  const userMember = await ctx.getChatMember(ctx.from.id);
+  if (userMember.status !== 'administrator' && userMember.status !== 'creator') {
+    await ctx.reply('❌ Solo administradores pueden usar este comando.');
+    return;
+  }
+  
+  const chatId = ctx.chat.id;
+  const threadId = (ctx.message as any).message_thread_id;
+  const { setTelegramThread } = require('./src/modules/notifier');
+  setTelegramThread(chatId, threadId || null);
+  await ctx.reply(`✅ Topic registrado para este grupo: ${threadId ? 'thread ' + threadId : 'general'}`);
 });
 
 bot.hears(/(?<=\s|^)(peron|kuka|kirchner|zurdo)\w*/i, (ctx) => {

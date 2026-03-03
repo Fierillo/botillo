@@ -5,3 +5,4 @@ src/tls.cert
 src/modules/test.ts
 dist/
 debug/
+AGENTS.md
