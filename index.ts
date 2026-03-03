@@ -14,7 +14,7 @@ import { Message } from "telegraf/typings/core/types/typegram";
 import { getGracefulShutdown } from "./src/modules/gracefulShutdown";
 const { loadAutoChannelConfig, saveAutoChannelConfig, initAutoChannel } = require("./src/modules/config");
 const { sendToAll } = require("./src/modules/notifier");
-import { getTest } from "./src/modules/test";
+//import { getTest } from "./src/modules/test";
 
 config();
 
@@ -208,7 +208,7 @@ bot.command(['hilo', 'hilo@botillo21_bot'], async (ctx) => {
   }
 });
 
-bot.command('test', (ctx) => {
+/*bot.command('test', (ctx) => {
   ensureChatIsSaved(ctx);
   getTest(ctx);
 });
@@ -220,7 +220,7 @@ bot.command('testreminder', async (ctx) => {
     ctx.reply('🚨 ¡21 bloquitos loko/a!\n\nÚltima chance: /prodillo <número>');
   });
   ctx.reply('Recordatorios enviados (test)');
-});
+});*/
 
 const welcome = (ctx: Context) => {
   const name = ctx.chat?.type === 'private' ? ctx.chat.first_name : ctx.chat?.title;
