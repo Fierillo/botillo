@@ -267,9 +267,19 @@ bot.command(['plantar', 'plantar@botillo21_bot'], async (ctx) => {
     return;
   }
   
-  const userMember = await ctx.getChatMember(ctx.from.id);
-  if (userMember.status !== 'administrator' && userMember.status !== 'creator') {
-    await ctx.reply('❌ Solo administradores pueden usar este comando.');
+  try {
+    const userMember = await ctx.getChatMember(ctx.from.id);
+    if (userMember.status !== 'administrator' && userMember.status !== 'creator') {
+      await ctx.reply('❌ Solo administradores pueden usar este comando.');
+      return;
+    }
+  } catch (err: any) {
+    if (err.description && err.description.includes('CHAT_ADMIN_REQUIRED')) {
+      await ctx.reply('❌ Necesito ser administrador del grupo para poder verificar tus permisos y plantar el canal.');
+      return;
+    }
+    console.error('Error verificando permisos en /plantar:', err);
+    await ctx.reply('❌ Hubo un error al verificar tus permisos.');
     return;
   }
   
