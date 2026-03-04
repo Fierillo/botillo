@@ -272,10 +272,7 @@ async function getProdillo(
         await bot.telegram.sendMessage(userId, `${bolt11}\n\n${instruction}`, { parse_mode: 'Markdown' });
       } catch (dmErr) {
         console.error(`MP a ${user} falló:`, dmErr);
-        await ctx.replyWithPhoto({ source: qrBuffer });
-        await ctx.reply(`${bolt11}\n\n${instruction}`, { parse_mode: 'Markdown' });
-        
-        await ctx.reply(`⚠️ Che *${user}*, intenté mandarte el invoice para pagar pero no tenés habilitado los mensajes, ¡media pila, habilita los mensajes o escribime vos por privado!`, { parse_mode: 'MarkdownV2' });
+        await ctx.reply(`⚠️ Che [${user}](tg://user?id=${userId}), intenté mandarte el invoice para pagar pero no tenés habilitado los mensajes, ¡media pila, habilita los mensajes o escribime vos por privado!`, { parse_mode: 'MarkdownV2' });
       }
 
       console.log(`Pending prodillo: ${user} [${userId}]: $${predict}`);

@@ -98,7 +98,7 @@ async function sendToAll(message: string, options: any = {}) {
 async function broadcastNewProdillo(user: string, predict: number, userId?: number) {
   console.log(`[BROADCAST] Nuevo prodillo: ${user} - $${predict}`);
   const userLinkTg = userId ? `[${user}](tg://user?id=${userId})` : user;
-  const userLinkDc = userId ? `<@${userId}>` : user;
+  const userLinkDc = `**${user}**`;
   await sendToAllTelegram(`🎯 *${userLinkTg}* inscribió un prodillo de $${predict} _pendiente de pago_`, { parse_mode: 'MarkdownV2' });
   await sendToAllDiscord(`🎯 ${userLinkDc} inscribió un prodillo de $${predict} _pendiente de pago_`);
 }
@@ -106,7 +106,7 @@ async function broadcastNewProdillo(user: string, predict: number, userId?: numb
 async function broadcastConfirmedProdillo(user: string, predict: number, userId?: number) {
   console.log(`[BROADCAST] Prodillo confirmado: ${user} - $${predict}`);
   const userLinkTg = userId ? `[${user}](tg://user?id=${userId})` : user;
-  const userLinkDc = userId ? `<@${userId}>` : user;
+  const userLinkDc = `**${user}**`;
   await sendToAllTelegram(`✅ *${userLinkTg}* confirmó su prodillo: $${predict}`, { parse_mode: 'MarkdownV2' });
   await sendToAllDiscord(`✅ ${userLinkDc} confirmó su prodillo: $${predict}`);
 }
@@ -114,7 +114,7 @@ async function broadcastConfirmedProdillo(user: string, predict: number, userId?
 async function broadcastExpiredProdillo(user: string, predict: number, userId?: number) {
   console.log(`[BROADCAST] Prodillo vencido: ${user} - $${predict}`);
   const userLinkTg = userId ? `[${user}](tg://user?id=${userId})` : user;
-  const userLinkDc = userId ? `<@${userId}>` : user;
+  const userLinkDc = `**${user}**`;
   await sendToAllTelegram(`⏰ *${userLinkTg}* no pagó su prodillo de $${predict}. El valor vuelve a estar disponible.`, { parse_mode: 'MarkdownV2' });
   await sendToAllDiscord(`⏰ ${userLinkDc} no pagó su prodillo de $${predict}. El valor vuelve a estar disponible.`);
 }
