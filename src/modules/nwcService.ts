@@ -64,7 +64,7 @@ export async function createInvoice(amountSats: number, userId, user: string, pr
       console.error(`Attempt ${attempt} failed:`, error.message);
       if (attempt === 3) throw error;
       if (error.message.includes('Timeout') || error.message.includes('Nip47') || error.code === 'INTERNAL') {
-        const delay = 1000 * Math.pow(2, attempt - 1); // 1s, 2s, 4s
+        const delay = 1000 * Math.pow(2, attempt - 1);
         console.log(`Retry in ${delay}ms...`);
         await new Promise(r => setTimeout(r, delay));
       } else {

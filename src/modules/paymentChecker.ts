@@ -75,16 +75,16 @@ export async function startPaymentChecker(bot: Telegraf) {
         try {
           const isPaid = await checkPaymentStatus(item.invoiceId, item.user, userId, item.predict);
           
-          if (isPaid) {
-            const currentProdillos = JSON.parse(await fs.readFile(PRODILLOS_FILE, 'utf-8'));
-            currentProdillos[userId] = { user: item.user, predict: item.predict };
-            await fs.writeFile(PRODILLOS_FILE, JSON.stringify(currentProdillos, null, 2));
-            
-            await broadcastConfirmedProdillo(item.user, item.predict, Number(userId));
-            
-            delete pending[userId];
-            writeFileSync(PENDING_FILE, JSON.stringify(pending, null, 2));
-          }
+          if (!isPaid) continue;
+
+          const currentProdillos = JSON.parse(await fs.readFile(PRODILLOS_FILE, 'utf-8'));
+          currentProdillos[userId] = { user: item.user, predict: item.predict };
+          await fs.writeFile(PRODILLOS_FILE, JSON.stringify(currentProdillos, null, 2));
+          
+          await broadcastConfirmedProdillo(item.user, item.predict, Number(userId));
+          
+          delete pending[userId];
+          writeFileSync(PENDING_FILE, JSON.stringify(pending, null, 2));
         } catch (error) {
           console.error(`Error checking payment for ${userId}:`, error);
         }
