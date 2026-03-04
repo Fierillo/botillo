@@ -88,7 +88,7 @@ async function trackBitcoinPrice(bot: Telegraf) {
 }
 
 async function notifyAll(bot: Telegraf, message: string) {
-  const { sendToAll } = require('./autoChannel');
+  const { sendToAll } = require('./notifier');
   await sendToAll(message);
 }
 
