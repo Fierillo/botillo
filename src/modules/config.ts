@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
+import { loadValuesSync, saveFileValuesSync } from './utils';
+
 const CONFIG_FILE = path.join(process.cwd(), 'src/db/autoChannel.json');
 
 interface DiscordGuildConfig {
@@ -31,11 +33,11 @@ export function initAutoChannel(telegramBotInstance: any, discordClientInstance:
 
 export function loadAutoChannelConfig() {
   if (!fs.existsSync(CONFIG_FILE)) {
-    fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
+    saveFileValuesSync(CONFIG_FILE, config);
     return config;
   }
   try {
-    config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8'));
+    config = loadValuesSync(CONFIG_FILE);
     if (!config.discord) config.discord = {};
     if (!config.telegram) config.telegram = {};
     return config;
@@ -47,7 +49,7 @@ export function loadAutoChannelConfig() {
 
 export function saveAutoChannelConfig(newConfig: Partial<AutoChannelConfig>) {
   config = { ...config, ...newConfig };
-  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
+  saveFileValuesSync(CONFIG_FILE, config);
 }
 
 export function getAutoChannelConfig(): AutoChannelConfig {
@@ -57,13 +59,13 @@ export function getAutoChannelConfig(): AutoChannelConfig {
 export function setDiscordChannel(guildId: string, channelId: string) {
   if (!config.discord) config.discord = {};
   config.discord[guildId] = { channelId };
-  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
+  saveFileValuesSync(CONFIG_FILE, config);
 }
 
 export function setTelegramThread(chatId: number, threadId: number | null) {
   if (!config.telegram) config.telegram = {};
   config.telegram[String(chatId)] = { threadId };
-  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
+  saveFileValuesSync(CONFIG_FILE, config);
 }
 
 export function getAutoTelegramThread(chatId: number): number | null {

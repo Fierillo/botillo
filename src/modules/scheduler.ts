@@ -4,7 +4,7 @@ const path = require('path');
 
 const BITCOIN_FILE = path.join(process.cwd(), 'src/db/bitcoin.json');
 const { getBitcoinPrices, bitcoinPrices } = require('./bitcoinPrices');
-const { saveValues } = require('./utils');
+const { saveValues, loadValues } = require('./utils');
 const { sendToAll } = require('./notifier');
 
 export function startScheduler() {
@@ -14,7 +14,7 @@ export function startScheduler() {
     bitcoinPrices.lastReportedMax = max;
     bitcoinPrices.lastReportedMin = min;
     
-    const data = JSON.parse(await fs.promises.readFile(BITCOIN_FILE, 'utf8'));
+    const data = await loadValues(BITCOIN_FILE);
     data.lastReportedMax = bitcoinPrices.lastReportedMax;
     data.lastReportedMin = bitcoinPrices.lastReportedMin;
     await saveValues(BITCOIN_FILE, 'lastReportedMax', bitcoinPrices.lastReportedMax);

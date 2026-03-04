@@ -1,9 +1,9 @@
-import fs from 'fs/promises';
-import { readFileSync, writeFileSync, existsSync } from 'fs';
 import path from 'path';
+import { existsSync } from 'fs';
 import { Telegraf } from 'telegraf';
 import { config } from "dotenv";
 import { checkPaymentStatus, initializeNWC } from './nwcService';
+import { loadValues, loadValuesSync, saveFileValues, saveFileValuesSync } from './utils';
 const { broadcastConfirmedProdillo, broadcastExpiredProdillo } = require('./notifier');
 
 config();
@@ -34,10 +34,8 @@ export async function startPaymentChecker(bot: Telegraf) {
     try {
       if (!existsSync(PENDING_FILE)) return;
       
-      const pending: Record<string, any> = JSON.parse(readFileSync(PENDING_FILE, 'utf-8'));
-      const invoicesCache: Record<string, any> = existsSync(INVOICES_CACHE_FILE)
-        ? JSON.parse(readFileSync(INVOICES_CACHE_FILE, 'utf-8')).invoices || {}
-        : {};
+      const pending: Record<string, any> = loadValuesSync(PENDING_FILE);
+      const invoicesCache: Record<string, any> = loadValuesSync(INVOICES_CACHE_FILE).invoices || {};
 
       const keys = Object.keys(pending);
       
@@ -53,7 +51,7 @@ export async function startPaymentChecker(bot: Telegraf) {
         if (!invoicesCache[item.invoiceId]) {
           console.log(`⚠️ Invoice ${item.invoiceId} not in cache, removing from pending`);
           delete pending[userId];
-          writeFileSync(PENDING_FILE, JSON.stringify(pending, null, 2));
+          saveFileValuesSync(PENDING_FILE, pending);
           continue;
         }
 
@@ -65,10 +63,10 @@ export async function startPaymentChecker(bot: Telegraf) {
           await broadcastExpiredProdillo(item.user, item.predict, Number(userId));
           
           delete invoicesCache[item.invoiceId];
-          writeFileSync(INVOICES_CACHE_FILE, JSON.stringify({ invoices: invoicesCache }, null, 2));
+          saveFileValuesSync(INVOICES_CACHE_FILE, { invoices: invoicesCache });
           
           delete pending[userId];
-          writeFileSync(PENDING_FILE, JSON.stringify(pending, null, 2));
+          saveFileValuesSync(PENDING_FILE, pending);
           continue;
         }
 
@@ -77,14 +75,14 @@ export async function startPaymentChecker(bot: Telegraf) {
           
           if (!isPaid) continue;
 
-          const currentProdillos = JSON.parse(await fs.readFile(PRODILLOS_FILE, 'utf-8'));
+          const currentProdillos = await loadValues(PRODILLOS_FILE);
           currentProdillos[userId] = { user: item.user, predict: item.predict };
-          await fs.writeFile(PRODILLOS_FILE, JSON.stringify(currentProdillos, null, 2));
+          await saveFileValues(PRODILLOS_FILE, currentProdillos);
           
           await broadcastConfirmedProdillo(item.user, item.predict, Number(userId));
           
           delete pending[userId];
-          writeFileSync(PENDING_FILE, JSON.stringify(pending, null, 2));
+          saveFileValuesSync(PENDING_FILE, pending);
         } catch (error) {
           console.error(`Error checking payment for ${userId}:`, error);
         }
