@@ -29,6 +29,9 @@ let prodilloState = {
   isTest: false,
   reminder121Sent: false,
   reminder21Sent: false,
+  winnerReminder420Sent: false,
+  winnerReminder210Sent: false,
+  winnerReminder21Sent: false,
 };
 
 async function prodilloRoundManager(
@@ -59,6 +62,27 @@ async function prodilloRoundManager(
     if (prodilleableDeadline > 121) {
       prodilloState.reminder121Sent = false;
       prodilloState.reminder21Sent = false;
+    }
+    
+    if (winnerDeadline === 420 && !prodilloState.winnerReminder420Sent) {
+      sendToTelegram('🏁 ¡Faltan 420 bloquecillos para el fin de la ronda!\n\n¡Se aproxima, loko/a! ¿Quién se llevará el premio?');
+      prodilloState.winnerReminder420Sent = true;
+    }
+
+    if (winnerDeadline === 210 && !prodilloState.winnerReminder210Sent) {
+      sendToTelegram('🏁 ¡Quedan 210 bloquecillos nomás!\n\n¡Se re viene! La tensión se puede cortar con un cuchillo...');
+      prodilloState.winnerReminder210Sent = true;
+    }
+
+    if (winnerDeadline === 21 && !prodilloState.winnerReminder21Sent) {
+      sendToTelegram('🏁 ¡Últimos 21 bloquecillos para el fin de la ronda loko/a!\n\n¡Últimos suspiros, que gane el mejor!');
+      prodilloState.winnerReminder21Sent = true;
+    }
+
+    if (winnerDeadline > 420) {
+      prodilloState.winnerReminder420Sent = false;
+      prodilloState.winnerReminder210Sent = false;
+      prodilloState.winnerReminder21Sent = false;
     }
     
     if (prodilloState.hasRoundWinnerBeenAnnounced && winnerDeadline > 0 && winnerDeadline < 210) {
