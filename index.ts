@@ -267,12 +267,6 @@ bot.command(['plantar', 'plantar@botillo21_bot'], async (ctx) => {
     return;
   }
   
-  const botMember = await ctx.getChatMember(ctx.botInfo.id);
-  if (botMember.status !== 'administrator' && botMember.status !== 'creator') {
-    await ctx.reply('❌ Necesito ser administrador para usar topics.');
-    return;
-  }
-  
   const userMember = await ctx.getChatMember(ctx.from.id);
   if (userMember.status !== 'administrator' && userMember.status !== 'creator') {
     await ctx.reply('❌ Solo administradores pueden usar este comando.');
