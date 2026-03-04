@@ -16,6 +16,7 @@ const PRODILLOS_FILE = path.join(process.cwd(), 'src/db/prodillos.json');
 const BITCOIN_FILE = path.join(process.cwd(), 'src/db/bitcoin.json');
 const TROFEILLOS_FILE = path.join(process.cwd(), 'src/db/trofeillos.json');
 const PENDING_FILE = path.join(process.cwd(), 'src/db/pendingProdillos.json');
+const INVOICES_CACHE_FILE = path.join(process.cwd(), 'src/db/invoicesCache.json');
 const PRODILLO_ROUND_CHECK_INTERVAL = 1000 * 69;
 
 let trofeillos = {} as TrofeillosDB;
@@ -165,6 +166,9 @@ async function prodilloRoundManager(
       
       const halFinneyPrediction = {'0': {user: 'Hal Finney', predict: 10000000}};
       await fs.writeFile(PRODILLOS_FILE, JSON.stringify(halFinneyPrediction, null, 2));
+      
+      await fs.writeFile(PENDING_FILE, JSON.stringify({}, null, 2));
+      await fs.writeFile(INVOICES_CACHE_FILE, JSON.stringify({ invoices: {} }, null, 2));
       
       prodilloState.hasRoundWinnerBeenAnnounced = true;
       prodilloState.reminder121Sent = false;
