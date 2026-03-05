@@ -2,7 +2,7 @@ import { Context, Telegraf } from 'telegraf';
 import { deadline } from './deadline';
 import { createInvoice } from './nwcService';
 import { loadValues, loadValuesSync, saveFileValues, saveFileValuesSync } from './utils';
-import { BitcoinPriceTracker, PendingProdillo, TrofeillosChampion, TrofeillosDB } from './types';
+import { BitcoinPriceTracker, PendingProdillo, TrofeillosChampion, TrofeillosDB, ProdilloDB } from './types';
 import path from 'path';
 import qrcode from 'qrcode';
 
@@ -32,10 +32,10 @@ export async function getProdillo(
   const { id: userId, username: user } = ctx.from;
 
   if (user && !isNaN(predict) && predict >= 0 && isFinite(predict)) {
-    const currentProdillos = await loadValues(PRODILLOS_FILE);
-    const pendingProdillos = loadValuesSync(PENDING_FILE);
-    const bitcoinData = await loadValues(BITCOIN_FILE);
-    bitcoinPrices.bitcoinMax = bitcoinData.bitcoinMax;
+    const currentProdillos = await loadValues<ProdilloDB>(PRODILLOS_FILE);
+    const pendingProdillos = loadValuesSync<Record<string, PendingProdillo>>(PENDING_FILE);
+    const bitcoinData = await loadValues<BitcoinPriceTracker>(BITCOIN_FILE);
+    bitcoinPrices.bitcoinMax = bitcoinData?.bitcoinMax || 0;
 
     const existingPending = pendingProdillos[userId];
     const existingConfirmed = currentProdillos[userId];
@@ -102,7 +102,7 @@ export async function getProdillo(
 
       console.log(`Pending prodillo: ${user} [${userId}]: $${predict}`);
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error en getProdillo:', error);
       ctx.reply('Error al crear la invoice. Revisa tu conexión y probá de nuevo.');
     }
@@ -116,16 +116,16 @@ export async function getListilla(
   prodillos: Record<string, { user: string; predict: number }>
 ) {
   try {
-    const prodillosFromFile = await loadValues(PRODILLOS_FILE);
-    const bitcoinData = await loadValues(BITCOIN_FILE);
-    const currentRoundMaxPrice = bitcoinData.bitcoinMax;
-    const treasury = Math.ceil((prodillosFromFile.treasury || 0) * 0.79);
+    const prodillosFromFile = await loadValues<ProdilloDB>(PRODILLOS_FILE);
+    const bitcoinData = await loadValues<BitcoinPriceTracker>(BITCOIN_FILE);
+    const currentRoundMaxPrice = bitcoinData?.bitcoinMax || 0;
+    const treasury = Math.ceil(((prodillosFromFile?.treasury) || 0) * 0.79);
 
-    if (Object.keys(prodillosFromFile).length === 0) {
+    if (Object.keys(prodillosFromFile?.users || {}).length === 0) {
       return ctx.reply('Todavía no hay prodillos en esta ronda. ¡Aprovecha con /prodillo <número>!');
     }
 
-    const rankedPredictions = (Object.values(prodillosFromFile) as Array<{ user: string; predict: number }>)
+    const rankedPredictions = (Object.values(prodillosFromFile?.users || {}) as Array<{ user: string; predict: number }>)
       .filter(item => typeof item === 'object' && item.user && item.predict)
       .map(({ user, predict }) => {
         return { user, predict, diff: Math.abs(predict - currentRoundMaxPrice) };
@@ -173,14 +173,14 @@ export async function getListilla(
 
 export async function getTrofeillos(ctx: Context) {
   try {
-    const rawData = loadValuesSync(TROFEILLOS_FILE);
+    const rawData = loadValuesSync<TrofeillosDB>(TROFEILLOS_FILE);
 
-    const currentChampion = (rawData.currentChampion as string | null) ?? "N/A";
+    const currentChampion = (rawData?.currentChampion as string | null) ?? "N/A";
 
     let amateurList = "";
     let profesionalList = "";
 
-    for (const [key, value] of Object.entries(rawData)) {
+    for (const [key, value] of Object.entries(rawData || {})) {
       if (key === "currentChampion" || key === "currentChampionId") continue;
 
       const champData = value as {

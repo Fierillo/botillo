@@ -114,7 +114,7 @@ export function setupTelegram(bot: Telegraf) {
         await ctx.reply('❌ Solo administradores pueden usar este comando.');
         return;
       }
-    } catch (err: any) {
+    } catch (err) {
       if (err.description && err.description.includes('CHAT_ADMIN_REQUIRED')) {
         await ctx.reply('❌ Necesito ser administrador del grupo para poder verificar tus permisos y plantar el canal.');
         return;

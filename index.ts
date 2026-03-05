@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 import { prodilloRoundManager } from './src/modules/prodillo';
 import { loadValues } from './src/modules/utils';
+import { BitcoinPriceTracker } from './src/modules/types';
 import { startPaymentChecker } from './src/modules/paymentChecker';
 import { startScheduler } from './src/modules/scheduler';
 import { bitcoinPrices, getBitcoinPrices, trackBitcoinPrice, telegramChats, discordChannels } from './src/modules/bitcoinPrices';
@@ -66,7 +67,7 @@ bot.catch((err, ctx) => {
 });
 
 process.on('uncaughtException', (error) => {
-  console.error('Uncaught exception:', error.message);
+  console.error('Uncaught exception:', (error as Error).message);
 });
 process.on('unhandledRejection', (reason) => {
   console.error('Unhandled promise rejection:', reason);
@@ -92,8 +93,8 @@ client.on('ready', async () => {
   try {
     const commitMessage = execSync('git log -1 --pretty=%B').toString().trim();
     console.log(commitMessage);
-  } catch (error: any) {
-    console.warn('No se pudo obtener info de Git (posiblemente no es un repo o Git no disponible):', error.message);
+  } catch (error) {
+    console.warn('No se pudo obtener info de Git (posiblemente no es un repo o Git no disponible):', (error as Error).message);
     console.log('Versión: No disponible (entorno Docker o sin Git)');
   }
 
@@ -113,7 +114,7 @@ client.on('ready', async () => {
     fs.writeFileSync(BITCOIN_FILE, JSON.stringify(bitcoinPrices, null, 2));
   }
   try {
-    const data = await loadValues(BITCOIN_FILE);
+    const data = await loadValues<BitcoinPriceTracker>(BITCOIN_FILE);
     if (!data.lastReportedMax) {data.lastReportedMax = 0}
     if (!data.lastReportedMin) {data.lastReportedMin = Infinity}
     if (!data.bitcoinMax) {data.bitcoinMax = 0}

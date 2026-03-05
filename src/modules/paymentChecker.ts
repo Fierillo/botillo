@@ -4,6 +4,7 @@ import { Telegraf } from 'telegraf';
 import { config } from "dotenv";
 import { checkPaymentStatus, initializeNWC } from './nwcService';
 import { loadValues, loadValuesSync, saveFileValues, saveFileValuesSync } from './utils';
+import { PendingProdillo, ProdilloDB, Invoice, PaymentRecord } from './types';
 const { broadcastConfirmedProdillo, broadcastExpiredProdillo } = require('./notifier');
 
 config();
@@ -34,8 +35,8 @@ export async function startPaymentChecker(bot: Telegraf) {
     try {
       if (!existsSync(PENDING_FILE)) return;
       
-      const pending: Record<string, any> = loadValuesSync(PENDING_FILE);
-      const invoicesCache: Record<string, any> = loadValuesSync(INVOICES_CACHE_FILE).invoices || {};
+      const pending: Record<string, PendingProdillo> = loadValuesSync(PENDING_FILE);
+      const invoicesCache: Record<string, PaymentRecord> = loadValuesSync<{ invoices: Record<string, PaymentRecord> }>(INVOICES_CACHE_FILE)?.invoices || {};
 
       const keys = Object.keys(pending);
       
@@ -71,13 +72,12 @@ export async function startPaymentChecker(bot: Telegraf) {
         }
 
         try {
-          const isPaid = await checkPaymentStatus(item.invoiceId, item.user, userId, item.predict);
+          const isPaid = await checkPaymentStatus(item.invoiceId, item.user, userId, String(item.predict));
           
           if (!isPaid) continue;
 
-          const currentProdillos = await loadValues(PRODILLOS_FILE);
-          currentProdillos[userId] = { user: item.user, predict: item.predict };
-          await saveFileValues(PRODILLOS_FILE, currentProdillos);
+          const currentProdillos = await loadValues<ProdilloDB>(PRODILLOS_FILE);
+          currentProdillos[userId] = { user: item.user, predict: item.predict } as never;
           
           await broadcastConfirmedProdillo(item.user, item.predict, Number(userId));
           

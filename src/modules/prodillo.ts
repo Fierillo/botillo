@@ -7,7 +7,7 @@ import { Telegraf, Context } from 'telegraf';
 import qrcode from 'qrcode';
 import { createInvoice } from './nwcService';
 import { loadValues, loadValuesSync, saveValues, saveFileValues, saveFileValuesSync } from './utils';
-import { TrofeillosChampion, TrofeillosDB, BitcoinPriceTracker, PendingProdillo } from './types';
+import { TrofeillosChampion, TrofeillosDB, BitcoinPriceTracker, PendingProdillo, ProdilloDB } from './types';
 import { generateWinnerImage } from './imageGenerator';
 const { sendToTelegram, sendPhotoToAllTelegram, broadcastNewProdillo } = require('./notifier');
 
@@ -45,8 +45,8 @@ export async function prodilloRoundManager(
     const { winnerDeadline, prodilleableDeadline, latestHeight } = await deadline();
     const { max: currentBitcoinPrice } = await getBitcoinPrices();
 
-    const bitcoinData = await loadValues(BITCOIN_FILE);
-    bitcoinPrices.bitcoinMax = bitcoinData.bitcoinMax;
+    const bitcoinData = await loadValues<BitcoinPriceTracker>(BITCOIN_FILE);
+    bitcoinPrices.bitcoinMax = bitcoinData?.bitcoinMax || 0;
   
     prodilloState.isPredictionWindowOpen = (prodilleableDeadline > 0);
     
@@ -100,10 +100,10 @@ export async function prodilloRoundManager(
     const isRoundOver = (winnerDeadline === 0 || winnerDeadline > 2010) && !prodilloState.hasRoundWinnerBeenAnnounced;
 
     if (isRoundOver || prodilloState.forceWin) {
-      const currentProdillos = await loadValues(PRODILLOS_FILE);
-      const treasury = Math.ceil((currentProdillos.treasury || 0) * 0.79);
+      const currentProdillos = await loadValues<ProdilloDB>(PRODILLOS_FILE);
+      const treasury = Math.ceil(((currentProdillos?.treasury) || 0) * 0.79);
       
-      const sortedProdillos = Object.entries(currentProdillos).sort(([,a]: any,[,b]: any) => 
+      const sortedProdillos = Object.entries(currentProdillos?.users || {}).sort(([,a], [,b]) => 
         Math.abs(a.predict - bitcoinPrices.bitcoinMax) - Math.abs(b.predict - bitcoinPrices.bitcoinMax)
       );
       
@@ -132,8 +132,8 @@ export async function prodilloRoundManager(
       }
 
       try {
-        trofeillos = loadValuesSync(TROFEILLOS_FILE);
-        if (Object.keys(trofeillos).length === 0) {
+        trofeillos = loadValuesSync<TrofeillosDB>(TROFEILLOS_FILE);
+        if (Object.keys(trofeillos || {}).length === 0) {
            trofeillos = { currentChampion: null, currentChampionId: null };
         }
       } catch (error) {

@@ -34,10 +34,10 @@ async function getBitcoinPrices() {
       max: parseInt(data.high),
     };
     return lastPrices;
-  } catch (error: any) {
+  } catch (error) {
     const errorMsg = error.response
       ? `Bitstamp API falló: ${error.response.status}`
-      : `getBitcoinPrices() error: ${error.message}`;
+      : `getBitcoinPrices() error: ${(error as Error).message}`;
     console.error(errorMsg);
     return lastPrices;
   }
@@ -71,8 +71,8 @@ async function trackBitcoinPrice(bot: Telegraf) {
       }
 
       await new Promise(resolve => setTimeout(resolve, TIME_INTERVAL));
-    } catch (error: any) {
-      console.error('trackBitcoinPrice() error:', error.message);
+    } catch (error) {
+      console.error('trackBitcoinPrice() error:', (error as Error).message);
       retryCount++;
       if (retryCount <= maxRetries) {
         const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
@@ -113,13 +113,13 @@ async function hasSendPermission(chatId: string, bot: Telegraf): Promise<boolean
     console.log(`Bot can't send messages in: ${chatId} (status: ${chatMember.status}), leaving...`);
     await bot.telegram.leaveChat(chatId); 
     return false;
-  } catch (error: any) {
-    console.error(`Error verifying permissions in ${chatId}:`, error.message);
+  } catch (error) {
+    console.error(`Error verifying permissions in ${chatId}:`, (error as Error).message);
     try {
       await bot.telegram.leaveChat(chatId); 
       console.log(`${chatId} is unachievable, leaving...`);
     } catch (leaveError: any) {
-      console.error(`ERROR trying to leave ${chatId}:`, leaveError.message);
+      console.error(`ERROR trying to leave ${chatId}:`, (leaveError as Error).message);
     }
     return false;
   }

@@ -3,7 +3,11 @@ import { NWCClient } from '@getalby/sdk';
 import { config } from 'dotenv';
 import path from 'path';
 import { saveValues, loadValues } from './utils';
-import { Invoice, PaymentRecord } from './types';
+import { Invoice, PaymentRecord, ProdilloDB } from './types';
+
+interface InvoicesCache {
+  invoices: Record<string, Invoice>;
+}
 
 config();
 
@@ -60,10 +64,10 @@ export async function createInvoice(amountSats: number, userId, user: string, pr
       console.log(`✅ Invoice ${attempt === 1 ? '' : '(retry)'} ${bolt11.substring(0, 50)}... ID: ${invoiceId}`);
       
       return { bolt11, invoiceId };
-    } catch (error: any) {
-      console.error(`Attempt ${attempt} failed:`, error.message);
+    } catch (error) {
+      console.error(`Attempt ${attempt} failed:`, (error as Error).message);
       if (attempt === 3) throw error;
-      if (error.message.includes('Timeout') || error.message.includes('Nip47') || error.code === 'INTERNAL') {
+      if ((error as Error).message.includes('Timeout') || (error as Error).message.includes('Nip47') || error.code === 'INTERNAL') {
         const delay = 1000 * Math.pow(2, attempt - 1);
         console.log(`Retry in ${delay}ms...`);
         await new Promise(r => setTimeout(r, delay));
@@ -113,8 +117,8 @@ export async function checkPaymentStatus(invoiceId: string, user: string, userId
       record.paidAt = Date.now();
       await saveValues(INVOICES_CACHE_FILE, 'invoices', Object.fromEntries(invoices));
       
-      const sumTreasury = await loadValues(PRODILLOS_FILE);
-      sumTreasury.treasury = (sumTreasury.treasury || 0) + (+transaction.amount / 1000);
+      const sumTreasury = await loadValues<ProdilloDB>(PRODILLOS_FILE);
+      sumTreasury.treasury = (sumTreasury?.treasury || 0) + (+transaction.amount / 1000);
       await saveValues(PRODILLOS_FILE, 'treasury', sumTreasury.treasury);
       console.log(`   Add ${transaction.amount / 1000} sats to treasury`);
       console.log(`   Total treasury: ${sumTreasury.treasury} sats`);
@@ -138,8 +142,8 @@ export async function initializeNWC(): Promise<void> {
     const publicKey = nwcClient.publicKey;
     console.log('✅ NWC connection established. Public key:', publicKey);
 
-    const data = await loadValues(INVOICES_CACHE_FILE);
-    const invoicesData = data.invoices || {};
+    const data = await loadValues<{ invoices: Record<string, PaymentRecord> }>(INVOICES_CACHE_FILE);
+    const invoicesData = data?.invoices || {};
     invoices = new Map(Object.entries(invoicesData));
     console.log(`✅ Loaded ${invoices.size} invoices from cache`);
   } catch (error) {
