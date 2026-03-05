@@ -1,32 +1,22 @@
 const fs = require('fs');
 const path = require('path');
 
+import { Telegraf } from 'telegraf';
+import { Client, GuildTextBasedChannel } from 'discord.js';
+import { AutoChannelConfig } from './types';
 import { loadValuesSync, saveFileValuesSync } from './utils';
 
 const CONFIG_FILE = path.join(process.cwd(), 'src/db/autoChannel.json');
-
-interface DiscordGuildConfig {
-  channelId: string | null;
-}
-
-interface TelegramChatConfig {
-  threadId: number | null;
-}
-
-interface AutoChannelConfig {
-  discord: Record<string, DiscordGuildConfig>;
-  telegram: Record<string, TelegramChatConfig>;
-}
 
 let config: AutoChannelConfig = {
   discord: {},
   telegram: {},
 };
 
-let telegramBot: any = null;
-let discordClient: any = null;
+let telegramBot: Telegraf | null = null;
+let discordClient: Client | null = null;
 
-export function initAutoChannel(telegramBotInstance: any, discordClientInstance: any) {
+export function initAutoChannel(telegramBotInstance: Telegraf, discordClientInstance: Client) {
   telegramBot = telegramBotInstance;
   discordClient = discordClientInstance;
 }
@@ -37,7 +27,7 @@ export function loadAutoChannelConfig() {
     return config;
   }
   try {
-    config = loadValuesSync(CONFIG_FILE);
+    config = loadValuesSync<AutoChannelConfig>(CONFIG_FILE);
     if (!config.discord) config.discord = {};
     if (!config.telegram) config.telegram = {};
     return config;
@@ -78,7 +68,7 @@ export function getAutoDiscordChannel(guildId: string): string | null {
   return config.discord[guildId]?.channelId ?? null;
 }
 
-export function getAutoChannel(client: any, guildId?: string): any {
+export function getAutoChannel(client: Client, guildId?: string): GuildTextBasedChannel | null {
   const targetGuildId = guildId || client.guilds.cache.first()?.id;
   if (!targetGuildId) return null;
   
@@ -87,21 +77,21 @@ export function getAutoChannel(client: any, guildId?: string): any {
     const guild = client.guilds.cache.get(targetGuildId);
     if (guild) {
       const channel = guild.channels.cache.get(channelId);
-      if (channel) return channel;
+      if (channel && channel.isTextBased()) return channel as GuildTextBasedChannel;
     }
   }
   
   const guild = client.guilds.cache.get(targetGuildId);
   if (!guild) return null;
   
-  const textChannels = guild.channels.cache.filter((ch: any) => ch.isTextBased() && !ch.isThread());
-  return textChannels.first() || null;
+  const textChannels = guild.channels.cache.filter((ch) => ch.isTextBased() && !ch.isThread());
+  return textChannels.first() as GuildTextBasedChannel || null;
 }
 
-export function getTelegramBot() {
+export function getTelegramBot(): Telegraf | null {
   return telegramBot;
 }
 
-export function getDiscordClient() {
+export function getDiscordClient(): Client | null {
   return discordClient;
 }
