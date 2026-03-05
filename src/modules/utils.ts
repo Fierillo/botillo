@@ -2,9 +2,9 @@ import fs from 'fs/promises';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import path from 'path';
 
-export async function saveValues(filePath: string, key: string, value: any) {
+export async function saveValues<T>(filePath: string, key: string, value: T): Promise<void> {
   try {
-    let data: any = {};
+    let data: Record<string, unknown> = {};
     try {
       const fileContent = await fs.readFile(filePath, 'utf8');
       data = JSON.parse(fileContent);
@@ -20,29 +20,29 @@ export async function saveValues(filePath: string, key: string, value: any) {
   }
 }
 
-export async function loadValues(filePath: string): Promise<any> {
+export async function loadValues<T>(filePath: string): Promise<T> {
   try {
     const data = JSON.parse(await fs.readFile(filePath, 'utf8'));
-    return data;
+    return data as T;
   } catch (err) {
     console.error(`Failed to load from ${path.basename(filePath)}:`, err);
-    return {};
+    return {} as T;
   }
 }
 
-export function loadValuesSync(filePath: string): any {
+export function loadValuesSync<T>(filePath: string): T {
   try {
     if (existsSync(filePath)) {
-      return JSON.parse(readFileSync(filePath, 'utf8'));
+      return JSON.parse(readFileSync(filePath, 'utf8')) as T;
     }
-    return {};
+    return {} as T;
   } catch (err) {
     console.error(`Failed to load sync from ${path.basename(filePath)}:`, err);
-    return {};
+    return {} as T;
   }
 }
 
-export async function saveFileValues(filePath: string, data: any) {
+export async function saveFileValues<T>(filePath: string, data: T): Promise<void> {
   try {
     await fs.writeFile(filePath, JSON.stringify(data, null, 2));
   } catch (err) {
@@ -50,7 +50,7 @@ export async function saveFileValues(filePath: string, data: any) {
   }
 }
 
-export function saveFileValuesSync(filePath: string, data: any) {
+export function saveFileValuesSync<T>(filePath: string, data: T): void {
   try {
     writeFileSync(filePath, JSON.stringify(data, null, 2));
   } catch (err) {
