@@ -5,4 +5,7 @@ src/tls.cert
 src/modules/test.ts
 dist/
 debug/
-AGENTS.md
+AGENTS.md.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
