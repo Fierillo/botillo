@@ -9,7 +9,7 @@ import { createInvoice } from './nwcService';
 import { loadValues, loadValuesSync, saveValues, saveFileValues, saveFileValuesSync } from './utils';
 import { TrofeillosChampion, TrofeillosDB, BitcoinPriceTracker, PendingProdillo, ProdilloDB } from './types';
 import { generateWinnerImage } from './imageGenerator';
-const { sendToTelegram, sendPhotoToAllTelegram, broadcastNewProdillo } = require('./notifier');
+const { sendToAll, sendPhotoToAllTelegram, broadcastNewProdillo } = require('./notifier');
 
 export const PRODILLOS_FILE = path.join(process.cwd(), 'src/db/prodillos.json');
 
@@ -28,11 +28,8 @@ export let prodilloState = {
   hasRoundWinnerBeenAnnounced: false,
   forceWin: false,
   isTest: false,
-  reminder121Sent: false,
-  reminder21Sent: false,
-  winnerReminder420Sent: false,
-  winnerReminder210Sent: false,
-  winnerReminder21Sent: false,
+  lastPredictWindowReminder: 0,
+  lastRoundEndReminder: 0,
 };
 
 export async function prodilloRoundManager(
@@ -50,40 +47,37 @@ export async function prodilloRoundManager(
   
     prodilloState.isPredictionWindowOpen = (prodilleableDeadline > 0);
     
-    if (prodilleableDeadline === 121 && !prodilloState.reminder121Sent) {
-      sendToTelegram('⛏️ ¡121 bloquitos para el cierre!\n\nDale que todavía estas a tiempo con /prodillo <número>');
-      prodilloState.reminder121Sent = true;
+    if (prodilleableDeadline <= 121 && prodilloState.lastPredictWindowReminder < 121) {
+      sendToAll('⛏️ ¡121 bloques para el cierre de la ventana de predicciones!\n\nDale, todavía estás a tiempo: /prodillo <número>');
+      prodilloState.lastPredictWindowReminder = 121;
     }
     
-    if (prodilleableDeadline === 21 && !prodilloState.reminder21Sent) {
-      sendToTelegram('🚨 ¡21 bloquecitos loko/a!\n\nÚltima chance señor/a: /prodillo <número>');
-      prodilloState.reminder21Sent = true;
+    if (prodilleableDeadline <= 21 && prodilloState.lastPredictWindowReminder < 21) {
+      sendToAll('🚨 ¡21 bloques para cerrar la ventana de predicciones!\n\nÚltima chance: /prodillo <número>');
+      prodilloState.lastPredictWindowReminder = 21;
     }
     
     if (prodilleableDeadline > 121) {
-      prodilloState.reminder121Sent = false;
-      prodilloState.reminder21Sent = false;
+      prodilloState.lastPredictWindowReminder = 0;
     }
     
-    if (winnerDeadline === 420 && !prodilloState.winnerReminder420Sent) {
-      sendToTelegram('🏁 ¡Faltan 420 bloquecillos para el fin de la ronda!\n\n¡Se aproxima, loko/a! ¿Quién se llevará el premio?');
-      prodilloState.winnerReminder420Sent = true;
+    if (winnerDeadline <= 420 && prodilloState.lastRoundEndReminder < 420) {
+      sendToAll('🏁 ¡Faltan 420 bloques para el fin de la ronda!\n\n¡Se aproxima! ¿Quién se llevará el premio?');
+      prodilloState.lastRoundEndReminder = 420;
     }
 
-    if (winnerDeadline === 210 && !prodilloState.winnerReminder210Sent) {
-      sendToTelegram('🏁 ¡Quedan 210 bloquecillos nomás!\n\n¡Se re viene! La tensión se puede cortar con un cuchillo...');
-      prodilloState.winnerReminder210Sent = true;
+    if (winnerDeadline <= 210 && prodilloState.lastRoundEndReminder < 210) {
+      sendToAll('🏁 ¡Quedan 210 bloques nomás!\n\n¡Se re viene! La tensión se puede cortar con un cuchillo...');
+      prodilloState.lastRoundEndReminder = 210;
     }
 
-    if (winnerDeadline === 21 && !prodilloState.winnerReminder21Sent) {
-      sendToTelegram('🏁 ¡Últimos 21 bloquecillos para el fin de la ronda loko/a!\n\n¡Últimos suspiros, que gane el mejor!');
-      prodilloState.winnerReminder21Sent = true;
+    if (winnerDeadline <= 21 && prodilloState.lastRoundEndReminder < 21) {
+      sendToAll('🏁 ¡Últimos 21 bloques para el fin de la ronda!\n\n¡Últimos suspiros, que gane el mejor!');
+      prodilloState.lastRoundEndReminder = 21;
     }
 
     if (winnerDeadline > 420) {
-      prodilloState.winnerReminder420Sent = false;
-      prodilloState.winnerReminder210Sent = false;
-      prodilloState.winnerReminder21Sent = false;
+      prodilloState.lastRoundEndReminder = 0;
     }
     
     if (prodilloState.hasRoundWinnerBeenAnnounced && winnerDeadline > 0 && winnerDeadline < 210) {
@@ -122,7 +116,7 @@ export async function prodilloRoundManager(
       
       const announcement = `<pre>🏁 ¡LA RONDA HA TERMINADO!\nMáximo de ₿ de esta ronda: $${bitcoinPrices.bitcoinMax}\n------------------------------------------\n${formattedList}\n\nCampeón/a: ${prodilloState.winnerName} 🏆\nPremio: ${treasury} sats</pre>`;
       
-      sendToTelegram(announcement, { parse_mode: 'HTML' });
+      sendToAll(announcement, { parse_mode: 'HTML' });
 
       try {
         const winnerImage = await generateWinnerImage(prodilloState.winnerName);
@@ -173,8 +167,8 @@ export async function prodilloRoundManager(
       await fs.writeFile(INVOICES_CACHE_FILE, JSON.stringify({ invoices: {} }, null, 2));
       
       prodilloState.hasRoundWinnerBeenAnnounced = true;
-      prodilloState.reminder121Sent = false;
-      prodilloState.reminder21Sent = false;
+      prodilloState.lastPredictWindowReminder = 0;
+      prodilloState.lastRoundEndReminder = 0;
       console.log(`Round finished! Winner: ${prodilloState.winnerName} [${winnerId}]`);
     }
 
