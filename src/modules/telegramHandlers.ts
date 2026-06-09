@@ -3,7 +3,7 @@ import { message } from 'telegraf/filters';
 import { Message } from "telegraf/typings/core/types/typegram";
 import { getProdillo, getListilla, getTrofeillos } from './prodilloCommands';
 import { getBitcoinPrices, bitcoinPrices, telegramChats } from './bitcoinPrices';
-import { getTest } from './test';
+// import { getTest } from './test';
 import { config } from 'dotenv';
 const { setTelegramThread } = require('./notifier');
 import { prodillos } from '../../index'; // Will refactor this dependency loop later
@@ -40,20 +40,6 @@ export function setupTelegram(bot: Telegraf) {
       await ctx.reply('🚨 Error al traer el hilo de ₿, probá de nuevo en un rato.');
     }
   });
-
-  /*bot.command('test', (ctx) => {
-    ensureChatIsSaved(ctx);
-    getTest(ctx);
-  });
-
-  bot.command('testreminder', async (ctx) => {
-    ensureChatIsSaved(ctx);
-    Object.keys(telegramChats).forEach(chatId => {
-      ctx.reply('⛏️ ¡121 bloquitos para el cierre loko/a!\n\nDale que todavía estas a tiempo con /prodillo <número>');
-      ctx.reply('🚨 ¡21 bloquitos loko/a!\n\nÚltima chance: /prodillo <número>');
-    });
-    ctx.reply('Recordatorios enviados (test)');
-  });*/
 
   const welcome = (ctx: Context) => {
     const name = ctx.chat?.type === 'private' ? ctx.chat.first_name : ctx.chat?.title;

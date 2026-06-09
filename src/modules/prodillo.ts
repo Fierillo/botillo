@@ -27,7 +27,7 @@ export let prodilloState = {
   isPredictionWindowOpen: true,
   hasRoundWinnerBeenAnnounced: false,
   forceWin: false,
-  isTest: false,
+  // isTest: false,
   lastPredictWindowReminder: 0,
   lastRoundEndReminder: 0,
 };

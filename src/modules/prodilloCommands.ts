@@ -17,7 +17,7 @@ export async function getProdillo(
 ) {
   const { winnerDeadline, prodilleableDeadline } = await deadline();
 
-  if(!prodilloState.isPredictionWindowOpen && !prodilloState.isTest) {
+  if(!prodilloState.isPredictionWindowOpen /* && !prodilloState.isTest */) {
     return ctx.reply(`¡Tarde, loko/a! La ventana de predicciones está cerrada.\nEspera ${winnerDeadline} bloques para que comience la nueva ronda.`);
   }
 
@@ -78,8 +78,8 @@ export async function getProdillo(
       };
       saveFileValuesSync(PENDING_FILE, pending);
 
-      if (prodilloState.isPredictionWindowOpen || prodilloState.isTest) {
-        console.log(`[PRODILLO] Ventana ABIERTA o TEST, anunciando prodillo de ${user}: $${predict}`);
+      if (prodilloState.isPredictionWindowOpen /* || prodilloState.isTest */) {
+        console.log(`[PRODILLO] Ventana ABIERTA, anunciando prodillo de ${user}: $${predict}`);
         await broadcastNewProdillo(user || 'Anónimo', predict, userId);
       } else {
         console.log(`[PRODILLO] Ventana CERRADA, no se anuncia prodillo de ${user}: $${predict}`);
